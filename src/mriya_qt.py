@@ -35,8 +35,8 @@ FieldsListContact = ['Id', 'AccountId', 'LastName', 'Email', 'Phone', 'DM_NewRec
 ObjectsFieldsLists = {'Account':FieldsListAcount, 'Contact':FieldsListContact}
 SourceList = ['src_prod', 'dst_prod', 'src_sit', 'dst_sit']
 
-project_dir = "/home/volodymyr/git/mriyaQT/data/"
-# project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
+# project_dir = "/home/volodymyr/git/mriyaQT/data/"
+project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
 
 sf_object = None
 sf_source = None
@@ -248,6 +248,8 @@ class TaskApp(App):
         print('TaskApp on tasks')
         print(task_item)
         print(self.tasks.data)
+        self.save_tasks()
+        self.refresh_tasks()
         self.transition.direction = 'right'
         self.root.current = 'tasks'
 
@@ -273,7 +275,25 @@ class TaskApp(App):
         print(data)
         for data_item in data:
             self.tasks.data[task_index][data_item] = data[data_item]
-
+        self.save_tasks()
+    def get_object_from_sql(self, soql):
+        res = None
+        try:
+            res = re.search('FROM(.*?)WHERE', soql, re.IGNORECASE).group(1).strip()
+        except:
+            try:
+                res = re.search('FROM(.*?)LIMIT', soql, re.IGNORECASE).group(1).strip()
+            except:
+                try:
+                    res = re.search('FROM(.*?)GROUP', soql,
+                                    re.IGNORECASE).group(1).strip()
+                except:
+                    try:
+                        res = re.search('FROM(.*?)ORDER', soql,
+                                        re.IGNORECASE).group(1).strip()
+                    except:
+                        res = soql[soql.find('FROM') + 5:].strip()
+        return res
 
     @property
     def tasks_fn(self):
