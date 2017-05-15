@@ -21,6 +21,10 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
+from kivy.uix.popup import Popup
+from kivy.uix.label import Label
+from kivy.uix.button import Button
+
 import re
 from os import path as p
 
@@ -35,8 +39,8 @@ FieldsListContact = ['Id', 'AccountId', 'LastName', 'Email', 'Phone', 'DM_NewRec
 ObjectsFieldsLists = {'Account':FieldsListAcount, 'Contact':FieldsListContact}
 SourceList = ['src_prod', 'dst_prod', 'src_sit', 'dst_sit']
 
-# project_dir = "/home/volodymyr/git/mriyaQT/data/"
-project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
+project_dir = "/home/volodymyr/git/mriyaQT/data/"
+# project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
 
 sf_object = None
 sf_source = None
@@ -89,8 +93,20 @@ class TaskView(Screen):
         self.get_sql_string()
 
 
-    def exec_item(self):
-        pass
+    def exec_item(self, task_index):
+
+        content = BoxLayout(orientation='vertical')
+        def close_popup():
+            on_press = lambda *args: self.popup_exit.dismiss()
+        btn = Button()
+        btn.text = 'OK'
+        text = TextInput(text=self.task_title)
+        content.add_widget(text)
+        content.add_widget(btn)
+
+        popup = Popup(title='Test popup', content= content, size_hint=(None, None), size=(400, 400))
+        popup.bind(on_dismiss=btn.on_press)
+        popup.open()
 
     def on_object_changed(self):
         self.get_task_name_string()
