@@ -100,7 +100,7 @@
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
-                    text:'Select object'
+                    text: 'Select object' if app.get_object_from_sql(root.task_sql) is None else app.get_object_from_sql(root.task_sql)
                     on_text:root.on_object_changed()
                 Label:
                     size_hint_y: None
@@ -120,13 +120,13 @@
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
-                    text: 'Select source'
+                    text: 'Select source' if root.task_source == '' else root.task_source
                     on_text: root.read_controls()
             BoxLayout:
                 TextInput:
                     id:ti_sql
                     multiline: True
-                    text: 'SELECT Id FROM Account LIMIT 10'
+                    text: 'INPUT SQL' if root.task_sql == '' else root.task_sql
                     on_text:root.on_sql_texinput_change()
         BoxLayout:
             orientation: 'horizontal'
@@ -142,6 +142,8 @@
                 id: ti_output
                 size_hint_y: None
                 height: '30dp'
+                text: root.task_output
+
 
 
 <TaskListItem>:
