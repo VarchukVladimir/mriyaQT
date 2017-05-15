@@ -22,6 +22,8 @@ from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
 import re
+from os import path as p
+
 
 from kivy.clock import Clock
 
@@ -33,7 +35,8 @@ FieldsListContact = ['Id', 'AccountId', 'LastName', 'Email', 'Phone', 'DM_NewRec
 ObjectsFieldsLists = {'Account':FieldsListAcount, 'Contact':FieldsListContact}
 SourceList = ['src_prod', 'dst_prod', 'src_sit', 'dst_sit']
 
-project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
+project_dir = "/home/volodymyr/git/mriyaQT/data/"
+# project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
 
 sf_object = None
 sf_source = None
@@ -85,6 +88,10 @@ class TaskView(Screen):
     def selected_object_fileds_list(self, adapter, *args):
         self.get_sql_string()
 
+
+    def exec_item(self):
+        pass
+
     def on_object_changed(self):
         self.get_task_name_string()
         self.get_sql_string()
@@ -111,6 +118,7 @@ class TaskView(Screen):
             self.ids.ti_task_name.text = self.ids.ce_source.text + '.' + self.ids.ce_object.text
         else:
             self.ids.ti_task_name.text = 'TaskName'
+        self.ids.ti_output.text = p.join(project_dir, self.ids.ti_task_name.text + '.csv')
 
     def set_controls(self):
         pass
@@ -120,17 +128,18 @@ class TaskView(Screen):
         pass
 
     def on_sql_texinput_change(self):
-        sql = self.ids.ti_sql.text
-        res_re = re.search('SELECT(.*?)FROM',sql, re.IGNORECASE)
-        print(res_re.groups())
-        if len(res_re.groups()) > 0:
-            fields_list = res_re.group(1).strip().split(',')
-            print(fields_list)
-            for field_item in fields_list:
-                print(field_item)
-                if field_item in ObjectsFieldsLists[self.ids.ce_object.text]:
-                    print('find')
-                    self.object_fileds.handle_selection( self.object_fileds.get_data_item(ObjectsFieldsLists[self.ids.ce_object.text].index(field_item)) , True)
+        pass
+        # sql = self.ids.ti_sql.text
+        # res_re = re.search('SELECT(.*?)FROM',sql, re.IGNORECASE)
+        # print(res_re.groups())
+        # if len(res_re.groups()) > 0:
+        #     fields_list = res_re.group(1).strip().split(',')
+        #     print(fields_list)
+        #     for field_item in fields_list:
+        #         print(field_item)
+        #         if field_item in ObjectsFieldsLists[self.ids.ce_object.text]:
+        #             print('find')
+        #             self.object_fileds.handle_selection( self.object_fileds.get_data_item(ObjectsFieldsLists[self.ids.ce_object.text].index(field_item)) , True)
 
 class TaskListItem(BoxLayout):
 
@@ -225,54 +234,9 @@ class TaskApp(App):
 
     def add_task(self):
         print('TaskApp add task')
-        self.tasks.data.append({'title': 'New task', 'content': '', 'sql':'', 'type':'', 'input':'', 'output':'', 'source':''})
+        self.tasks.data.append({'title': 'NewTask', 'content': '', 'sql':'', 'type':'', 'input':'', 'output':'', 'source':''})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
-
-    def set_task_content(self, task_index, task_content):
-        print('TaskApp set task content')
-        self.tasks.data[task_index]['content'] = task_content
-        data = self.tasks.data
-        self.tasks.data = []
-        self.tasks.data = data
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_title(self, task_index, task_title):
-        print('TaskApp set task title')
-        self.tasks.data[task_index]['title'] = task_title
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_sql(self, task_index, task_sql):
-        print('TaskApp set task sql')
-        self.tasks.data[task_index]['sql'] = task_sql
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_type(self, task_index, task_type):
-        print('TaskApp set task title')
-        self.tasks.data[task_index]['type'] = task_type
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_input(self, task_index, task_input):
-        print('TaskApp set task input')
-        self.tasks.data[task_index]['input'] = task_input
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_output(self, task_index, task_output):
-        print('TaskApp set task title')
-        self.tasks.data[task_index]['output'] = task_output
-        self.save_tasks()
-        self.refresh_tasks()
-
-    def set_task_source(self, task_index, task_source):
-        print('TaskApp set task title')
-        self.tasks.data[task_index]['source'] = task_source
-        self.save_tasks()
-        self.refresh_tasks()
 
     def refresh_tasks(self):
         print('TaskApp refresh')
@@ -303,6 +267,13 @@ class TaskApp(App):
         print('executing sql {}'.format(self.tasks.data[task_index]['title']))
         self.save_tasks()
         self.refresh_tasks()
+
+    def save_task(self, task_index, data):
+        print(self.tasks.data)
+        print(data)
+        for data_item in data:
+            self.tasks.data[task_index][data_item] = data[data_item]
+
 
     @property
     def tasks_fn(self):
