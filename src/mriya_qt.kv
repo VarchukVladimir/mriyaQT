@@ -71,10 +71,15 @@
                 id:ti_task_name
                 text: 'Task_Name'
             Button:
-                text: 'EXEC'
+                text: 'Exec'
                 size_hint_x: None
                 width: self.height
                 on_release: app.exec_item()
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':ce_source.text, 'type':'SF_Query', 'output':ti_output.text, 'input':'', 'title':ti_task_name.text})
             Button:
                 text: 'X'
                 size_hint_x: None
@@ -117,21 +122,27 @@
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
                     text: 'Select source'
                     on_text: root.read_controls()
-                Label:
-                    text: 'Output file:'
-                    size_hint_y: None
-                    height:'35dp'
-                    text_size: self.width, None
-                TextInput:
-                    size_hint_y: None
-                    height: '30dp'
-                    text: 'C:\\Python_Projects\\mriya_qt\\data\\t1.csv'
             BoxLayout:
                 TextInput:
                     id:ti_sql
                     multiline: True
                     text: 'SELECT Id FROM Account LIMIT 10'
                     on_text:root.on_sql_texinput_change()
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height:'35dp'
+            Label:
+                text: 'Output file:'
+                size_hint_x: 0.3
+                size_hint_y: None
+                height:'35dp'
+                text_size: self.width, None
+            TextInput:
+                id: ti_output
+                size_hint_y: None
+                height: '30dp'
+
 
 <TaskListItem>:
 
