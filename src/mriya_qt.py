@@ -16,35 +16,70 @@ from os.path import join, exists
 from kivy.app import App, Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.properties import ListProperty, StringProperty, \
-        NumericProperty, ObjectProperty, BooleanProperty
+    NumericProperty, ObjectProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.dropdown import DropDown
+from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.label import Label
-from kivy.uix.button import Button
-
+from data_connector import RESTConnector, SFBeatboxConnector
+from configparser import ConfigParser
+from data_connector import get_conn_param
 import re
 from os import path as p
-
 
 from kivy.clock import Clock
 
 Builder.load_file('mriya_qt.kv')
 
-ObjectsList = ['Account', 'Contact', 'Opportunity', 'Rackspace_Contact__c']
+# ObjectsList = ['Account', 'Contact', 'Opportunity', 'Rackspace_Contact__c']
 FieldsListAcount = ['Id', 'CORE_Account_Number__c', 'Name', 'New_Record_id__c']
 FieldsListContact = ['Id', 'AccountId', 'LastName', 'Email', 'Phone', 'DM_NewRecordId__c']
 ObjectsFieldsLists = {'Account':FieldsListAcount, 'Contact':FieldsListContact}
-SourceList = ['src_prod', 'dst_prod', 'src_sit', 'dst_sit']
 
-project_dir = "/home/volodymyr/git/mriyaQT/data/"
-# project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
+
+# project_dir = "/home/volodymyr/git/mriyaQT/data/"
+project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
+config_file = "config.ini"
+
 
 sf_object = None
 sf_source = None
 
+config = ConfigParser()
+with open(config_file, 'r') as conf_file:
+   config.read_file(conf_file)
+
+SourceList = config.keys()[1:]
+
+def get_sobjects(connection_name):
+    bb = SFBeatboxConnector(get_conn_param(config[connection_name]))
+    sobjects = bb.svc.describeTabs()
+    tab_list = []
+    for tab in sobjects:
+        for dic_tab in tab:
+            if type(tab[dic_tab]) is list:
+                for list_tab in tab[dic_tab]:
+                    if list_tab['sObjectName'] not in tab_list and list_tab['sObjectName'] != '':
+                        tab_list.append(list_tab['sObjectName'])
+    # print(bb.svc.describeSObjects('Account')[0].fields)
+    return sorted(tab_list)
+
+def get_field_list(object_name, connection):
+    print(object_name)
+    print(connection)
+    print('!!!!!!!!!!!!!!!!!!!!!!!')
+    if connection in SourceList:
+        if object_name in ObjectsList:
+            bb = SFBeatboxConnector(get_conn_param(config[connection]))
+            fields = bb.svc.describeSObjects(object_name)[0].fields.keys()
+            print(fields)
+            return sorted(fields)
+    return []
+
+ObjectsList = get_sobjects('dst_sit')
 
 class ComboEdit(TextInput):
     options = ListProperty(('', ))
@@ -72,8 +107,8 @@ class ComboEdit(TextInput):
             self.drop_down.open(self)
         return super(ComboEdit, self).on_touch_up(touch)
 
-class TaskView(Screen):
 
+class TaskView(Screen):
     task_index = NumericProperty()
     task_title = StringProperty()
     task_content = StringProperty()
@@ -88,31 +123,20 @@ class TaskView(Screen):
     sources_list = ObjectProperty(SourceList)
     object_selected = False
 
+    source_object_list = []
+    source_object_field_list = []
+
     print('TaskView class')
     def selected_object_fileds_list(self, adapter, *args):
         self.get_sql_string()
 
-
-    def exec_item(self, task_index):
-
-        content = BoxLayout(orientation='vertical')
-        def close_popup():
-            on_press = lambda *args: self.popup_exit.dismiss()
-        btn = Button()
-        btn.text = 'OK'
-        text = TextInput(text=self.task_title)
-        content.add_widget(text)
-        content.add_widget(btn)
-
-        popup = Popup(title='Test popup', content= content, size_hint=(None, None), size=(400, 400))
-        popup.bind(on_dismiss=btn.on_press)
-        popup.open()
-
-    def on_object_changed(self):
-        self.get_task_name_string()
+    def on_object_changed(self, task_names):
+        self.get_task_name_string(task_names)
         self.get_sql_string()
-        if self.ids.ce_object.text in ObjectsFieldsLists.keys():
-            self.object_fileds.adapter.data = ObjectsFieldsLists[self.ids.ce_object.text]
+        if self.ids.ce_object.text in ObjectsList:
+            # ObjectsFieldsLists.keys():
+            self.object_fileds.adapter.data = self.get_fields_list()
+            # ObjectsFieldsLists[self.ids.ce_object.text]
         else:
             print('Load new object')
             self.object_fileds.adapter.data = []
@@ -126,22 +150,46 @@ class TaskView(Screen):
             if self.object_fileds.adapter.selection:
                 sql_string = 'SELECT {fields} FROM {object_name}'.format(fields=', '.join([selected_item.text for selected_item in self.object_fileds.adapter.selection]), object_name=self.ids.ce_object.text)
             else:
-                sql_string = 'SELECT {fields} FROM {object_name}'.format(fields='CHOOSE FIELDS', object_name=self.ids.ce_object.text)
+                sql_string = 'SELECT {fields} FROM {object_name}'.format(fields=' ', object_name=self.ids.ce_object.text)
         self.ids.ti_sql.text = sql_string
 
-    def get_task_name_string(self):
+    def get_task_name_string(self, task_names):
         if self.ids.ce_source.text in self.sources_list and self.ids.ce_object.text in self.objects_list:
-            self.ids.ti_task_name.text = self.ids.ce_source.text + '.' + self.ids.ce_object.text
+            new_task_name = self.ids.ce_source.text + '.' + self.ids.ce_object.text
         else:
-            self.ids.ti_task_name.text = 'TaskName'
+            new_task_name = 'TaskName'
+        same_task_name_index = 0
+        for i, task_name in enumerate(task_names):
+            if task_name.startswith(new_task_name) and self.task_index != i:
+                if new_task_name != task_name:
+                    suffix = task_name[len(new_task_name):]
+                    if suffix.isdigit():
+                        same_task_name_index = int(suffix) + 1
+                else:
+                    same_task_name_index = 1
+        if same_task_name_index == 0:
+            self.ids.ti_task_name.text = new_task_name
+        else:
+            self.ids.ti_task_name.text = '{0}{1:02d}'.format(new_task_name, same_task_name_index)
         self.ids.ti_output.text = p.join(project_dir, self.ids.ti_task_name.text + '.csv')
 
     def set_controls(self):
         pass
 
-    def read_controls(self):
-        self.get_task_name_string()
-        pass
+    def read_controls(self, task_names):
+        self.get_task_name_string(task_names)
+        if self.ids.ce_source.text in SourceList:
+            self.source_object_list = self.get_objects_list_()
+        self.ids.ce_object.options = [Button(text = str(x), size_hint_y=None, height=30) for x in self.source_object_list]
+        for option in self.ids.ce_object.options:
+            option.bind(size=option.setter('text_size'))
+        if self.ids.ce_object.text in self.source_object_list:
+            self.source_object_field_list = self.get_fields_list()
+
+        self.object_fileds.adapter.data = self.source_object_field_list
+
+    def on_task_title_changed(self, task_names):
+        self.get_task_name_string(task_names)
 
     def on_sql_texinput_change(self):
         pass
@@ -157,8 +205,17 @@ class TaskView(Screen):
         #             print('find')
         #             self.object_fileds.handle_selection( self.object_fileds.get_data_item(ObjectsFieldsLists[self.ids.ce_object.text].index(field_item)) , True)
 
-class TaskListItem(BoxLayout):
+    def exec_item(self, task_index):
+        print(task_index)
 
+    def get_fields_list(self):
+        return get_field_list(self.ids.ce_object.text, self.ids.ce_source.text)
+
+    def get_objects_list_(self):
+        return get_sobjects(self.ids.ce_source.text)
+
+
+class TaskListItem(BoxLayout):
     task_content = StringProperty()
     task_title = StringProperty()
     task_index = NumericProperty()
@@ -176,7 +233,6 @@ class TaskListItem(BoxLayout):
 
 
 class Tasks(Screen):
-
     data = ListProperty()
 
     def args_converter(self, row_index, item):
@@ -192,9 +248,7 @@ class Tasks(Screen):
             'task_source':item['source']
         }
 
-
 class TaskApp(App):
-
     def build(self):
         print('TaskApp build')
         self.tasks = Tasks(name='tasks')
@@ -223,7 +277,7 @@ class TaskApp(App):
         del self.tasks.data[task_index]
         self.save_tasks()
         self.refresh_tasks()
-        self.go_tasks()
+        self.go_tasks(task_index)
 
     def edit_task(self, task_index):
         print('TaskApp edit task')
@@ -233,25 +287,44 @@ class TaskApp(App):
         if self.root.has_screen(name):
             self.root.remove_widget(self.root.get_screen(name))
 
-        view = TaskView(
-            name=name,
-            task_index=task_index,
-            task_title=task.get('title'),
-            task_content=task.get('content'),
-            task_sql=task.get('sql'),
-            task_type=task.get('type'),
-            task_input=task.get('input'),
-            task_output=task.get('output'),
-            task_source=task.get('source')
-        )
+        print(task.get('type'))
+        if task.get('type') == 'SF_Query':
+            view = TaskView(
+                name=name,
+                task_index=task_index,
+                task_title=task.get('title'),
+                task_content=task.get('content'),
+                task_sql=task.get('sql'),
+                task_type=task.get('type'),
+                task_input=task.get('input'),
+                task_output=task.get('output'),
+                task_source=task.get('source')
+            )
+        elif task.get('type') == 'SQL_Query':
+            print('sql query')
+            print(task)
+            view = SQLView(
+                name=name,
+                task_index=task_index,
+                task_title=task.get('title'),
+                task_content=task.get('content'),
+                task_sql=task.get('sql'),
+                task_type=task.get('type'),
+                task_input=task.get('input'),
+                task_output=task.get('output'),
+                task_source=task.get('source')
+            )
+        print(view)
+        print(view.name)
         self.root.add_widget(view)
         self.transition.direction = 'left'
         self.root.current = view.name
 
-    def add_task(self):
+    def add_task(self, task_type):
         print('TaskApp add task')
-        self.tasks.data.append({'title': 'NewTask', 'content': '', 'sql':'', 'type':'', 'input':'', 'output':'', 'source':''})
+        self.tasks.data.append({'title': 'NewTask', 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output':'', 'source':''})
         task_index = len(self.tasks.data) - 1
+        print('go to edit task')
         self.edit_task(task_index)
 
     def refresh_tasks(self):
@@ -286,12 +359,16 @@ class TaskApp(App):
         self.save_tasks()
         self.refresh_tasks()
 
+    def get_task_names(self):
+        return [task_item['title'] for task_item in self.tasks.data]
+
     def save_task(self, task_index, data):
         print(self.tasks.data)
         print(data)
         for data_item in data:
             self.tasks.data[task_index][data_item] = data[data_item]
         self.save_tasks()
+
     def get_object_from_sql(self, soql):
         res = None
         try:
@@ -310,6 +387,12 @@ class TaskApp(App):
                     except:
                         res = soql[soql.find('FROM') + 5:].strip()
         return res
+
+    def get_objects_list(self, connection):
+        return get_sobjects(connection)
+
+    def get_field_list(self, object_name, connection):
+        return get_field_list(object_name, connection)
 
     @property
     def tasks_fn(self):
