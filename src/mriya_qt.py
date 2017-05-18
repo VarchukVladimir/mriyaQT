@@ -214,6 +214,23 @@ class TaskView(Screen):
     def get_objects_list_(self):
         return get_sobjects(self.ids.ce_source.text)
 
+class SQLView(Screen):
+    task_index = NumericProperty()
+    task_title = StringProperty()
+    task_content = StringProperty()
+    task_sql = StringProperty()
+    task_type = StringProperty()
+    task_input = StringProperty()
+    task_output = StringProperty()
+    task_source = StringProperty()
+
+    object_fileds = ObjectProperty ()
+    objects_list = ObjectProperty(['test'])
+    sources_list = ObjectProperty(['aaa'])
+    object_selected = False
+    source_object_list = []
+    source_object_field_list = []
+
 
 class TaskListItem(BoxLayout):
     task_content = StringProperty()
