@@ -49,16 +49,18 @@ def get_conn_param(conf_dict):
 
 
 class SalesforceBulkExtended(SalesforceBulk):
+
+    def __init__(self, **kwargs):
+        super(SalesforceBulkExtended,self).__init__(**kwargs)
+        self.restendpoint = self.endpoint[:self.endpoint.find('/services/async/')] + '/services/data/v39.0/'
+
+
     def rest_request(self, url_reuqest=''):
         http = Http()
         url = self.restendpoint + url_reuqest
         'Authorization: Bearer '
         headers =  {"Authorization": "Bearer " + self.sessionId,
                    "Content-Type": "application/json; charset=UTF-8"}
-        # self.headers({"Content-Type": "application/json"})
-
-        print(url)
-        print(headers)
         resp, content = http.request(url, "GET", headers=headers)
         self.check_status(resp, content)
         if resp['status'] == '200':

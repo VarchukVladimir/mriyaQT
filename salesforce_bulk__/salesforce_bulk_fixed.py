@@ -68,7 +68,7 @@ class SalesforceBulk(object):
             self.endpoint = host
         else:
             self.endpoint = "https://" + host
-        self.restendpoint = self.endpoint + '/services/data/v39.0/'
+        # self.restendpoint = self.endpoint + '/services/data/v39.0/'
         self.endpoint += "/services/async/%s" % API_version
         self.sessionId = sessionId
         self.jobNS = 'http://www.force.com/2009/06/asyncapi/dataload'
