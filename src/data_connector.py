@@ -19,6 +19,8 @@ import re
 import csvquerytool
 import StringIO
 from multiprocessing import Pool, Queue
+from httplib2 import Http
+
 
 ConnectorParam = namedtuple('ConnectorParam',
                          ['username', 'password', 'url_prefix',
@@ -44,6 +46,25 @@ def get_conn_param(conf_dict):
                            '',
                            int(conf_dict['threads'].encode('utf-8')))
     return param
+
+
+class SalesforceBulkExtended(SalesforceBulk):
+    def rest_request(self, url_reuqest=''):
+        http = Http()
+        url = self.restendpoint + url_reuqest
+        'Authorization: Bearer '
+        headers =  {"Authorization": "Bearer " + self.sessionId,
+                   "Content-Type": "application/json; charset=UTF-8"}
+        # self.headers({"Content-Type": "application/json"})
+
+        print(url)
+        print(headers)
+        resp, content = http.request(url, "GET", headers=headers)
+        self.check_status(resp, content)
+        if resp['status'] == '200':
+            return content
+        return None
+
 
 
 class SFBeatboxConnector:
@@ -219,7 +240,7 @@ class RESTConnector:
             self.num_threads = connector_param.threads
         else:
             self.num_threads = 0
-        self.bulk = SalesforceBulk(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='38.0')
+        self.bulk = SalesforceBulkExtended(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='38.0')
         self.batch_size = batch_size
 
 
@@ -340,7 +361,7 @@ class RESTConnector:
             batch_csv.writeheader()
             for row in params.batch_data:
                 batch_csv.writerow(row)
-            batch_uploader = SalesforceBulk(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='37.0')
+            batch_uploader = SalesforceBulkExtended(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='37.0')
             batch_id = batch_uploader.post_bulk_batch(params.job,batch_csv_io.getvalue())
             print('worker batch number {} batch id {}'.format(params.batch_number, batch_id))
             logging.info('worker batch number {} batch id {}'.format(params.batch_number, batch_id))

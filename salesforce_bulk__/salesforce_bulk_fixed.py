@@ -150,22 +150,6 @@ class SalesforceBulk(object):
 
         return job_id
 
-    def rest_request(self, url_reuqest=''):
-        http = Http()
-        url = self.restendpoint + url_reuqest
-        'Authorization: Bearer '
-        headers =  {"Authorization": "Bearer " + self.sessionId,
-                   "Content-Type": "application/json; charset=UTF-8"}
-        # self.headers({"Content-Type": "application/json"})
-
-        print(url)
-        print(headers)
-        resp, content = http.request(url, "GET", headers=headers)
-        self.check_status(resp, content)
-        if resp['status'] == '200':
-            return content
-        return None
-
     def check_status(self, resp, content):
         if resp.status >= 400:
             msg = "Bulk API HTTP Error result: {0}".format(content)
