@@ -54,6 +54,7 @@ class SalesforceBulk(object):
 
     def __init__(self, sessionId=None, host=None, username=None, password=None,
                  exception_class=BulkApiError, API_version="29.0"):
+        self.restendpoint = None
         if not sessionId and not username:
             raise RuntimeError(
                 "Must supply either sessionId/instance_url or username/password")
@@ -67,6 +68,7 @@ class SalesforceBulk(object):
             self.endpoint = host
         else:
             self.endpoint = "https://" + host
+        self.restendpoint = self.endpoint + '/services/data/v39.0/'
         self.endpoint += "/services/async/%s" % API_version
         self.sessionId = sessionId
         self.jobNS = 'http://www.force.com/2009/06/asyncapi/dataload'
@@ -134,11 +136,12 @@ class SalesforceBulk(object):
                                   external_id_name=external_id_name)
         http = Http()
         print(self.headers())
+        print()
         resp, content = http.request(self.endpoint + "/job",
                                      "POST",
                                      headers=self.headers(),
                                      body=doc)
-
+        print()
         self.check_status(resp, content)
 
         tree = ET.fromstring(content)
@@ -146,6 +149,22 @@ class SalesforceBulk(object):
         self.jobs[job_id] = job_id
 
         return job_id
+
+    def rest_request(self, url_reuqest=''):
+        http = Http()
+        url = self.restendpoint + url_reuqest
+        'Authorization: Bearer '
+        headers =  {"Authorization": "Bearer " + self.sessionId,
+                   "Content-Type": "application/json; charset=UTF-8"}
+        # self.headers({"Content-Type": "application/json"})
+
+        print(url)
+        print(headers)
+        resp, content = http.request(url, "GET", headers=headers)
+        self.check_status(resp, content)
+        if resp['status'] == '200':
+            return content
+        return None
 
     def check_status(self, resp, content):
         if resp.status >= 400:
