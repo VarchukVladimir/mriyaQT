@@ -11,39 +11,49 @@ Application for extracting and querying SalesForce data using SQL (SQLite engine
 
 __version__ = '1.0'
 
+from kivy.config import Config
+Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+
 import json
 from os.path import join, exists
+from os import mkdir
 from kivy.app import App, Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.properties import ListProperty, StringProperty, \
-    NumericProperty, ObjectProperty, BooleanProperty
+    NumericProperty, BooleanProperty
 from kivy.uix.boxlayout import BoxLayout
-from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.dropdown import DropDown
-from kivy.uix.button import Button
 from kivy.uix.textinput import TextInput
-from kivy.uix.popup import Popup
-from kivy.uix.label import Label
+
 from data_connector import RESTConnector, SFBeatboxConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
 import re
 from os import path as p
+from migration_engine import MigrationWorkflow
+from sql_view import SQLView
+from sf_view import TaskView
+from start_screen import StartScreen
+import sys
+from cStringIO import StringIO
 
-from kivy.clock import Clock
 
 Builder.load_file('mriya_qt.kv')
 
-# ObjectsList = ['Account', 'Contact', 'Opportunity', 'Rackspace_Contact__c']
-FieldsListAcount = ['Id', 'CORE_Account_Number__c', 'Name', 'New_Record_id__c']
-FieldsListContact = ['Id', 'AccountId', 'LastName', 'Email', 'Phone', 'DM_NewRecordId__c']
-ObjectsFieldsLists = {'Account':FieldsListAcount, 'Contact':FieldsListContact}
+standart_object_list_file = p.join('..','StandartObjectList.ini')
 
+StandartObjectList = ['Account', 'Contact', 'AccountCaontactRole', 'Lead', 'Opportunity', 'Task', 'Events', 'Notes', 'Attachment',
+    'Campaign', 'CampaignMember', 'User', 'AccountTeamMember']
 
-# project_dir = "/home/volodymyr/git/mriyaQT/data/"
-project_dir = "C:\\Python_Projects\\mriyaQT\\data\\"
-config_file = "config.ini"
+if p.exists(standart_object_list_file):
+    jj = json.load(open(standart_object_list_file))
+    StandartObjectList = jj[0]['StandartObjectList']
 
+StandartObjectList_uppercase = [ object_item.upper() for object_item in StandartObjectList]
+
+ObjectsList = []
+
+config_file = p.join("..","config.ini")
 
 sf_object = None
 sf_source = None
@@ -51,35 +61,113 @@ sf_source = None
 config = ConfigParser()
 with open(config_file, 'r') as conf_file:
    config.read_file(conf_file)
-
 SourceList = config.keys()[1:]
+ObjectsMetadata = []
 
-def get_sobjects(connection_name):
-    bb = SFBeatboxConnector(get_conn_param(config[connection_name]))
-    sobjects = bb.svc.describeTabs()
-    tab_list = []
-    for tab in sobjects:
-        for dic_tab in tab:
-            if type(tab[dic_tab]) is list:
-                for list_tab in tab[dic_tab]:
-                    if list_tab['sObjectName'] not in tab_list and list_tab['sObjectName'] != '':
-                        tab_list.append(list_tab['sObjectName'])
-    # print(bb.svc.describeSObjects('Account')[0].fields)
-    return sorted(tab_list)
+def get_fields_rest(connection, sobject):
+    rc = RESTConnector(get_conn_param(config[connection]))
+    req_res = json.loads('[{}]'.format(rc.bulk.rest_request('sobjects/{}/describe'.format(sobject))))
+    fields = []
+    for field_item in req_res[0]['fields']:
+        fields.append(field_item['name'])
+    return sorted(fields)
 
-def get_field_list(object_name, connection):
-    print(object_name)
-    print(connection)
-    print('!!!!!!!!!!!!!!!!!!!!!!!')
-    if connection in SourceList:
-        if object_name in ObjectsList:
-            bb = SFBeatboxConnector(get_conn_param(config[connection]))
-            fields = bb.svc.describeSObjects(object_name)[0].fields.keys()
-            print(fields)
-            return sorted(fields)
-    return []
+class Project():
+    def __init__(self, file_name = 'C:\\Python_Projects\\mriyaQT\\data\\Simple_Project\\Simple_Project.json'):
+        if not p.exists(file_name):
+            mkdir(file_name)
+            mkdir( p.join(file_name, 'data'))
+            self.project_file_name = p.join(p.join( p.dirname(file_name), p.basename(file_name)), p.basename(file_name) + '.mpr')
+            self.project_dir = file_name
+            self.project_data_dir = p.join(self.project_dir, 'data')
+            self.project_name = p.basename(file_name)
+            self.project = {
+                'metadata':{
+                    source_name:{} for source_name in config.keys()},
+                'workflow':[],
+                'project_name': self.project_name ,
+                'project_data_dir': self.project_data_dir,
+                'project_dir': self.project_dir
+            }
+        else:
+            self.project_file_name = file_name
+            self.project = json.load(open(file_name))
+            self.project_dir = self.project['project_dir']
+            self.project_data_dir = self.project['project_data_dir']
+            self.project_name = self.project['project_name']
+            for source_item in SourceList:
+                if source_item not in self.project['metadata']:
+                    self.project['metadata'][source_item]  = {}
 
-ObjectsList = get_sobjects('dst_sit')
+    def save(self):
+        json.dump(self.project, open(self.project_file_name, 'w'))
+
+    def get_sobjects(self, connection, force_refresh = False):
+        if connection not in SourceList:
+            return []
+        if self.project['metadata'][connection] == {} or force_refresh:
+            rest_connector = RESTConnector(get_conn_param(config[connection]))
+            req_res = json.loads('[{}]'.format(rest_connector.bulk.rest_request('sobjects')))[0]['sobjects']
+            self.project['metadata'][connection] = { (type(sobject['name']) is str or type(sobject['name']) is unicode) and sobject['name']:{} for sobject in req_res}
+        return sorted(self.project['metadata'][connection].keys())
+
+    def get_sobject_fileds(self, connection, sobject, force_refresh=False):
+        if self.project['metadata'][connection] == {}:
+            self.get_sobjects(connection)
+        if force_refresh or self.project['metadata'][connection][sobject] == {}:
+            rest_connector = RESTConnector(get_conn_param(config[connection]))
+            req_res = json.loads('[{}]'.format(rest_connector.bulk.rest_request('sobjects/{}/describe'.format(sobject))))
+            fields = []
+            for field_item in req_res[0]['fields']:
+                fields.append(field_item['name'])
+            self.project['metadata'][connection][sobject] = sorted(fields)
+        return sorted(self.project['metadata'][connection][sobject])
+
+    def get_standart_sobjects(self, connection, force_refresh = False):
+        objects_list = self.get_sobjects(connection, force_refresh=force_refresh)
+        show_object_list = []
+
+        for object_item in objects_list:
+            if object_item.upper() in StandartObjectList_uppercase:
+                show_object_list.append(object_item)
+        return show_object_list
+
+    def get_sources(self):
+        return SourceList
+
+    def get_object_from_sql(self, soql):
+        res = None
+        soql_upper = soql
+        try:
+            res = re.search('FROM(.*?)WHERE', soql_upper, re.IGNORECASE).group(1).strip()
+        except:
+            try:
+                res = re.search('FROM(.*?)LIMIT', soql_upper, re.IGNORECASE).group(1).strip()
+            except:
+                try:
+                    res = re.search('FROM(.*?)GROUP', soql_upper,
+                                    re.IGNORECASE).group(1).strip()
+                except:
+                    try:
+                        res = re.search('FROM(.*?)ORDER', soql_upper,
+                                        re.IGNORECASE).group(1).strip()
+                    except:
+                        res = soql[soql_upper.find('FROM') + 5:].strip()
+        return res
+
+    def get_sql_after_from(self, soql):
+        soql_upper = soql.upper()
+        after_from = soql[soql_upper.find('FROM'):].strip().split(' ')
+        res = ' '.join(after_from[2:])
+        return res
+
+    def get_fields_from_sql(self, sql):
+        re_res = re.search('SELECT(.*?)FROM', sql, re.IGNORECASE).group(1)
+        sql_fields = None
+        if re_res:
+            sql_fields = [field_item.strip() for field_item in re_res.split(',')]
+        return sql_fields
+
 
 class ComboEdit(TextInput):
     options = ListProperty(('', ))
@@ -108,129 +196,16 @@ class ComboEdit(TextInput):
         return super(ComboEdit, self).on_touch_up(touch)
 
 
-class TaskView(Screen):
-    task_index = NumericProperty()
-    task_title = StringProperty()
-    task_content = StringProperty()
-    task_sql = StringProperty()
-    task_type = StringProperty()
-    task_input = StringProperty()
-    task_output = StringProperty()
-    task_source = StringProperty()
+class Capturing(list):
+    def __enter__(self):
+        self._stdout = sys.stdout
+        sys.stdout = self._stringio = StringIO()
+        return self
 
-    object_fileds = ObjectProperty ()
-    objects_list = ObjectProperty(ObjectsList)
-    sources_list = ObjectProperty(SourceList)
-    object_selected = False
-
-    source_object_list = []
-    source_object_field_list = []
-
-    print('TaskView class')
-    def selected_object_fileds_list(self, adapter, *args):
-        self.get_sql_string()
-
-    def on_object_changed(self, task_names):
-        self.get_task_name_string(task_names)
-        self.get_sql_string()
-        if self.ids.ce_object.text in ObjectsList:
-            # ObjectsFieldsLists.keys():
-            self.object_fileds.adapter.data = self.get_fields_list()
-            # ObjectsFieldsLists[self.ids.ce_object.text]
-        else:
-            print('Load new object')
-            self.object_fileds.adapter.data = []
-        self.object_fileds.adapter.bind(on_selection_change=self.selected_object_fileds_list)
-        self.object_selected = True
-        print('got it')
-
-    def get_sql_string(self):
-        sql_string = 'First select object from list'
-        if self.ids.ce_object.text in self.objects_list:
-            if self.object_fileds.adapter.selection:
-                sql_string = 'SELECT {fields} FROM {object_name}'.format(fields=', '.join([selected_item.text for selected_item in self.object_fileds.adapter.selection]), object_name=self.ids.ce_object.text)
-            else:
-                sql_string = 'SELECT {fields} FROM {object_name}'.format(fields=' ', object_name=self.ids.ce_object.text)
-        self.ids.ti_sql.text = sql_string
-
-    def get_task_name_string(self, task_names):
-        if self.ids.ce_source.text in self.sources_list and self.ids.ce_object.text in self.objects_list:
-            new_task_name = self.ids.ce_source.text + '.' + self.ids.ce_object.text
-        else:
-            new_task_name = 'TaskName'
-        same_task_name_index = 0
-        for i, task_name in enumerate(task_names):
-            if task_name.startswith(new_task_name) and self.task_index != i:
-                if new_task_name != task_name:
-                    suffix = task_name[len(new_task_name):]
-                    if suffix.isdigit():
-                        same_task_name_index = int(suffix) + 1
-                else:
-                    same_task_name_index = 1
-        if same_task_name_index == 0:
-            self.ids.ti_task_name.text = new_task_name
-        else:
-            self.ids.ti_task_name.text = '{0}{1:02d}'.format(new_task_name, same_task_name_index)
-        self.ids.ti_output.text = p.join(project_dir, self.ids.ti_task_name.text + '.csv')
-
-    def set_controls(self):
-        pass
-
-    def read_controls(self, task_names):
-        self.get_task_name_string(task_names)
-        if self.ids.ce_source.text in SourceList:
-            self.source_object_list = self.get_objects_list_()
-        self.ids.ce_object.options = [Button(text = str(x), size_hint_y=None, height=30) for x in self.source_object_list]
-        for option in self.ids.ce_object.options:
-            option.bind(size=option.setter('text_size'))
-        if self.ids.ce_object.text in self.source_object_list:
-            self.source_object_field_list = self.get_fields_list()
-
-        self.object_fileds.adapter.data = self.source_object_field_list
-
-    def on_task_title_changed(self, task_names):
-        self.get_task_name_string(task_names)
-
-    def on_sql_texinput_change(self):
-        pass
-        # sql = self.ids.ti_sql.text
-        # res_re = re.search('SELECT(.*?)FROM',sql, re.IGNORECASE)
-        # print(res_re.groups())
-        # if len(res_re.groups()) > 0:
-        #     fields_list = res_re.group(1).strip().split(',')
-        #     print(fields_list)
-        #     for field_item in fields_list:
-        #         print(field_item)
-        #         if field_item in ObjectsFieldsLists[self.ids.ce_object.text]:
-        #             print('find')
-        #             self.object_fileds.handle_selection( self.object_fileds.get_data_item(ObjectsFieldsLists[self.ids.ce_object.text].index(field_item)) , True)
-
-    def exec_item(self, task_index):
-        print(task_index)
-
-    def get_fields_list(self):
-        return get_field_list(self.ids.ce_object.text, self.ids.ce_source.text)
-
-    def get_objects_list_(self):
-        return get_sobjects(self.ids.ce_source.text)
-
-class SQLView(Screen):
-    task_index = NumericProperty()
-    task_title = StringProperty()
-    task_content = StringProperty()
-    task_sql = StringProperty()
-    task_type = StringProperty()
-    task_input = StringProperty()
-    task_output = StringProperty()
-    task_source = StringProperty()
-
-    object_fileds = ObjectProperty ()
-    objects_list = ObjectProperty(['test'])
-    sources_list = ObjectProperty(['aaa'])
-    object_selected = False
-    source_object_list = []
-    source_object_field_list = []
-
+    def __exit__(self, *args):
+        self.extend(self._stringio.getvalue().splitlines())
+        del self._stringio    # free up some memory
+        sys.stdout = self._stdout
 
 class TaskListItem(BoxLayout):
     task_content = StringProperty()
@@ -241,18 +216,19 @@ class TaskListItem(BoxLayout):
     task_input = StringProperty()
     task_output = StringProperty()
     task_source = StringProperty()
-
+    task_exec = BooleanProperty()
+    task_status = StringProperty()
     def __init__(self, **kwargs):
         print('TaskListItem init')
         print(kwargs)
         del kwargs['index']
+        print(kwargs)
         super(TaskListItem, self).__init__(**kwargs)
-
 
 class Tasks(Screen):
     data = ListProperty()
-
     def args_converter(self, row_index, item):
+        print('converter')
         print(item)
         return {
             'task_index': row_index,
@@ -262,35 +238,36 @@ class Tasks(Screen):
             'task_type':item['type'],
             'task_input':item['input'],
             'task_output':item['output'],
-            'task_source':item['source']
+            'task_source':item['source'],
+            'task_exec':item['exec'],
+            'task_status':'Idle'
         }
 
 class TaskApp(App):
-    def build(self):
-        print('TaskApp build')
-        self.tasks = Tasks(name='tasks')
-        self.load_tasks()
 
+    def __init__(self, **kwargs):
+        super(TaskApp, self).__init__(**kwargs)
+
+    def build(self):
+        self.start_screen = StartScreen()
         self.transition = SlideTransition(duration=.35)
         root = ScreenManager(transition=self.transition)
-        root.add_widget(self.tasks)
+        root.add_widget(self.start_screen)
         return root
 
+    def on_release_field_button(self, text):
+        print(text)
+
     def load_tasks(self):
-        print('TaskApp load tasks')
-        if not exists(self.tasks_fn):
-            return
-        with open(self.tasks_fn) as fd:
-            data = json.load(fd)
+        data = self.project.project['workflow']
         self.tasks.data = data
 
     def save_tasks(self):
         print('TaskApp save tasks')
-        with open(self.tasks_fn, 'w') as fd:
-            json.dump(self.tasks.data, fd)
+        self.project.project['workflow'] = self.tasks.data
+        self.project.save()
 
     def del_task(self, task_index):
-        print('TaskApp del task')
         del self.tasks.data[task_index]
         self.save_tasks()
         self.refresh_tasks()
@@ -304,7 +281,6 @@ class TaskApp(App):
         if self.root.has_screen(name):
             self.root.remove_widget(self.root.get_screen(name))
 
-        print(task.get('type'))
         if task.get('type') == 'SF_Query':
             view = TaskView(
                 name=name,
@@ -315,8 +291,15 @@ class TaskApp(App):
                 task_type=task.get('type'),
                 task_input=task.get('input'),
                 task_output=task.get('output'),
-                task_source=task.get('source')
+                task_source=task.get('source'),
+                task_exec=task.get('exec'),
+                project = self.project,
+                sources_list = SourceList
             )
+            if task.get('source') != '':
+                view.objects_list = self.project.get_standart_sobjects(task.get('source'))
+            # if task.get('input') != '':
+            #     view.object_fileds = self.project.get_sobject_fileds(task.get('source'), task.get('input'))
         elif task.get('type') == 'SQL_Query':
             print('sql query')
             print(task)
@@ -329,31 +312,36 @@ class TaskApp(App):
                 task_type=task.get('type'),
                 task_input=task.get('input'),
                 task_output=task.get('output'),
-                task_source=task.get('source')
+                task_source=task.get('source'),
+                task_exec=task.get('exec'),
+                project=self.project
             )
-        print(view)
-        print(view.name)
+            view.task_list.adapter.data = [task_name['title'] for task_name in self.tasks.data[:task_index]]
+            view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
         self.root.add_widget(view)
         self.transition.direction = 'left'
         self.root.current = view.name
 
     def add_task(self, task_type):
-        print('TaskApp add task')
-        self.tasks.data.append({'title': 'NewTask', 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output':'', 'source':''})
+        task_names_index = []
+        projectname = self.project.project_name
+        for task_name_item in [ task_item['title'] for task_item in self.tasks.data ]:
+            if task_name_item.startswith(projectname) and task_name_item[len(projectname):].isdigit():
+                task_names_index.append(task_name_item)
+        max_index = 1
+        if task_names_index:
+            max_index = int(max(task_names_index)[len(projectname):]) + 1
+        new_title_name = '{0}{1:02d}'.format(projectname, max_index)
+        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False})
         task_index = len(self.tasks.data) - 1
-        print('go to edit task')
         self.edit_task(task_index)
 
     def refresh_tasks(self):
-        print('TaskApp refresh')
         data = self.tasks.data
         self.tasks.data = []
         self.tasks.data = data
 
     def go_tasks(self, task_item):
-        print('TaskApp on tasks')
-        print(task_item)
-        print(self.tasks.data)
         self.save_tasks()
         self.refresh_tasks()
         self.transition.direction = 'right'
@@ -371,50 +359,75 @@ class TaskApp(App):
         self.save_tasks()
         self.refresh_tasks()
 
-    def exec_task(self, task_index):
-        print('executing sql {}'.format(self.tasks.data[task_index]['title']))
-        self.save_tasks()
-        self.refresh_tasks()
-
     def get_task_names(self):
         return [task_item['title'] for task_item in self.tasks.data]
 
     def save_task(self, task_index, data):
-        print(self.tasks.data)
-        print(data)
         for data_item in data:
             self.tasks.data[task_index][data_item] = data[data_item]
         self.save_tasks()
 
-    def get_object_from_sql(self, soql):
-        res = None
-        try:
-            res = re.search('FROM(.*?)WHERE', soql, re.IGNORECASE).group(1).strip()
-        except:
-            try:
-                res = re.search('FROM(.*?)LIMIT', soql, re.IGNORECASE).group(1).strip()
-            except:
+    def on_skip_task(self, instance, value, task_index):
+        print('{} skipped {}'.format(task_index, value))
+        print(self.tasks.data[task_index].keys())
+        self.tasks.data[task_index]['exec'] = value
+
+    def go_to_project(self, prject_file):
+        self.project = Project(prject_file)
+        print('project name')
+        print(self.project.project_name)
+        self.tasks = Tasks(name='tasks')
+        self.load_tasks()
+        self.root.add_widget(self.tasks)
+        self.transition.direction = 'left'
+        self.root.current = self.tasks.name
+
+    def exec_workflow(self):
+        cmd_exec = []
+        connection_dict = {}
+        for task_item in self.tasks.data:
+            print(task_item)
+            if task_item['exec'] and  task_item['type'] == 'SF_Query' and task_item['source'] not in connection_dict.keys():
+                connection_dict[task_item['source']] = RESTConnector(get_conn_param(config[task_item['source']]))
+
+        for task_item in self.tasks.data:
+            cmd_exec = []
+            print(task_item['exec'])
+            if task_item['exec']:
+                if task_item['type'] == 'SQL_Query':
+                    cmd_exec = [{
+                        '':{'input_data':[ input_path.strip() for input_path in task_item['input'].split(',')],
+                                'sql':task_item['sql'],
+                                'output_data':open(task_item['output'], 'w'),
+                                'tag':None,
+                                'message':''
+                                }
+                    }]
+                elif task_item['type'] == 'SF_Query':
+                    cmd_exec = [{
+                    'execute':{'input_data':task_item['sql'],
+                               'connector':connection_dict[task_item['source']],
+                               'object':self.project.get_object_from_sql(task_item['sql']),
+                               'command':'query',
+                               'tag':None,
+                               'output_data':task_item['output'],
+                               'message':''
+                               }
+                    }]
+            self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
+            with Capturing() as output:
                 try:
-                    res = re.search('FROM(.*?)GROUP', soql,
-                                    re.IGNORECASE).group(1).strip()
+                    wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
+                    wf_task.execute_workflow()
                 except:
-                    try:
-                        res = re.search('FROM(.*?)ORDER', soql,
-                                        re.IGNORECASE).group(1).strip()
-                    except:
-                        res = soql[soql.find('FROM') + 5:].strip()
-        return res
+                    print "Unexpected error:", sys.exc_info()
+            for line in output:
+                if not line.startswith('Wait for job done'):
+                    self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
 
-    def get_objects_list(self, connection):
-        return get_sobjects(connection)
-
-    def get_field_list(self, object_name, connection):
-        return get_field_list(object_name, connection)
-
-    @property
-    def tasks_fn(self):
-        print(join(project_dir, 'tasks.json'))
-        return join(project_dir, 'tasks.json')
+            print(output)
+            print(type(output))
+                # self.root.current.ids.ti_log.text = output
 
 if __name__ == '__main__':
-    TaskApp().run()
+    TaskApp(title="Mriya Query Tool").run()

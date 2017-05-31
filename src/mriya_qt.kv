@@ -45,17 +45,238 @@
     text_size: self.size
 
 
+<StartScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            size_hint_y: None
+            height: 35
+            orientation: 'horizontal'
+            TextInput:
+                id: text_input
+                height: 35
+                multiline: False
+                text:'C:\\Python_Projects\\D3\\D3.mpr'
+            Button:
+                text: '>>'
+                size_hint_x: None
+                size_hint_y: None
+                width:self.height
+                size_hint_y: None
+                height: 35
+                on_release: app.go_to_project(text_input.text)
+        Button:
+            text: 'Load Project'
+            size_hint_y: None
+            height: 45
+            on_release: root.show_load()
+        Button:
+            text: 'New Project'
+            size_hint_y: None
+            height: 45
+            on_release: root.show_save()
+        Widget:
+
+<ReviewScreen>:
+    BoxLayout:
+        TextInput:
+            id: text_input
+            height: 35
+            multiline: False
+            text:'C:\\Python_Projects\\D3\\D3.mpr'
+        Button:
+            text: '>>'
+            size_hint_x: None
+            size_hint_y: None
+            width:self.height
+            size_hint_y: None
+            height: 35
+            on_release: app.go_to_project(text_input.text)
+        TextInput:
+            id: text_input
+            height: 35
+            multiline: False
+            text:'C:\\Python_Projects\\D3\\D3.mpr'
+
+
+<LoadDialog>:
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Load"
+                on_release: root.load(filechooser.path, filechooser.selection)
+
+<SaveDialog>:
+    text_input: text_input
+    BoxLayout:
+        size: root.size
+        pos: root.pos
+        orientation: "vertical"
+        FileChooserListView:
+            id: filechooser
+            on_selection: text_input.text = self.selection and self.selection[0] or ''
+
+        TextInput:
+            id: text_input
+            size_hint_y: None
+            height: 30
+            multiline: False
+
+        BoxLayout:
+            size_hint_y: None
+            height: 30
+            Button:
+                text: "Cancel"
+                on_release: root.cancel()
+
+            Button:
+                text: "Save"
+                on_release: root.save(filechooser.path, text_input.text)
 
 <TaskView>:
-
-    on_task_content: app.set_task_content(self.task_index, self.task_content)
-    on_task_title: app.set_task_title(self.task_index, self.task_title)
-    on_task_sql: app.set_task_sql(self.task_index, self.task_sql)
-    on_task_type: app.set_task_type(self.task_index, self.task_type)
-    on_task_input: app.set_task_input(self.task_index, self.task_input)
-    on_task_output: app.set_task_output(self.task_index, self.task_output)
-    on_task_source: app.set_task_source(self.task_index, self.task_source)
     object_fileds: lv_fields
+    #selected_filed: lv_selected_fields
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_title_changed(app.get_task_names())
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Exec'
+                size_hint_x: None
+                width: self.height
+                on_release: root.exec_item(root.task_index)
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':ce_source.text, 'type':'SF_Query', 'output':ti_output.text, 'input':'', 'title':ti_task_name.text, 'exec' :cb_run_in_workflow.active})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+                on_release: app.del_task(root.task_index)
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Object:'
+                ComboEdit:
+                    id:ce_object
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
+                    text: 'Select object' if app.project.get_object_from_sql(root.task_sql) is None and app.project.get_object_from_sql(root.task_sql) not in app.project.get_sobjects(self.ce_source) else app.project.get_object_from_sql(root.task_sql)
+                    on_text:root.read_controls(app.get_task_names())
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Fields:'
+                TextInput:
+                    id:ti_filter_fields
+                    size_hint_y: None
+                    height: '30dp'
+                    text: ''
+                    on_text: root.on_text_field_filter(self.text)
+                ListView:
+                    id:lv_fields
+                    halign: 'left'
+                    text_size: self.size
+                    adapter: ListAdapter( data=root.object_fileds.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_select_object_fileds_list)
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source:'
+                ComboEdit:
+                    id:ce_source
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
+                    text: 'Select source' if root.task_source == '' else root.task_source
+                    on_text: root.read_controls(app.get_task_names())
+            BoxLayout:
+                orientation: 'vertical'
+                StackLayout:
+                    id:st_layout
+                    size_hint_y: 0.4
+                TextInput:
+                    id:ti_sql
+                    multiline: True
+                    text: 'INPUT SQL' if root.task_sql == '' else root.task_sql
+                    on_text:root.on_sql_texinput_change()
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height:'35dp'
+            Label:
+                text: 'Output file:'
+                size_hint_x: 0.3
+                size_hint_y: None
+                height:'35dp'
+                text_size: self.width, None
+            TextInput:
+                id: ti_output
+                size_hint_y: None
+                height: '30dp'
+                text: root.task_output
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height:'35dp'
+            Label:
+                text: 'Status:'
+                size_hint_y: None
+                height:'35dp'
+
+<SQLView>:
+
+    task_list: lv_tasks
+    field_list: lv_fields
 
     BoxLayout:
         orientation: 'vertical'
@@ -79,122 +300,25 @@
                 id:ti_task_name
                 text: root.task_title
                 on_text: root.on_task_title_changed(app.get_task_names())
-            Button:
-                text: 'Exec'
-                size_hint_x: None
-                width: self.height
-                on_release: root.exec_item(root.task_index)
-            Button:
-                text: 'Save'
-                size_hint_x: None
-                width: self.height
-                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':ce_source.text, 'type':'SF_Query', 'output':ti_output.text, 'input':'', 'title':ti_task_name.text})
-            Button:
-                text: 'X'
-                size_hint_x: None
-                width: self.height
-                on_release: app.del_task(root.task_index)
-        BoxLayout:
-            orientation: 'horizontal'
-            BoxLayout:
-                size_hint_x: 0.3
-                orientation: 'vertical'
-                Label:
-                    size_hint_y: None
-                    height:'35dp'
-                    text_size: self.width, None
-                    text: 'Object:'
-                ComboEdit:
-                    id:ce_object
-                    size_hint_y: None
-                    height: '30dp'
-                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
-                    text: 'Select object' if app.get_object_from_sql(root.task_sql) is None else app.get_object_from_sql(root.task_sql)
-                    on_text:root.on_object_changed(app.get_task_names())
-                Label:
-                    size_hint_y: None
-                    height:'35dp'
-                    text_size: self.width, None
-                    text: 'Fields:'
-                ListView:
-                    id:lv_fields
-                    halign: 'left'
-                    text_size: self.size
-                    adapter: ListAdapter( data=root.object_fileds.adapter.data, selection_mode='multiple', cls=classes.FiledListButton, on_selection_change=root.selected_object_fileds_list)
-                Label:
-                    size_hint_y: None
-                    height:'35dp'
-                    text_size: self.width, None
-                    text: 'Source:'
-                ComboEdit:
-                    id:ce_source
-                    size_hint_y: None
-                    height: '30dp'
-                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
-                    text: 'Select source' if root.task_source == '' else root.task_source
-                    on_text: root.read_controls(app.get_task_names())
-            BoxLayout:
-                TextInput:
-                    id:ti_sql
-                    multiline: True
-                    text: 'INPUT SQL' if root.task_sql == '' else root.task_sql
-                    on_text:root.on_sql_texinput_change()
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: None
-            height:'35dp'
             Label:
-                text: 'Output file:'
-                size_hint_x: 0.3
-                size_hint_y: None
-                height:'35dp'
-                text_size: self.width, None
-            TextInput:
-                id: ti_output
-                size_hint_y: None
-                height: '30dp'
-                text: root.task_output
-
-<SQLView>:
-
-    on_task_content: app.set_task_content(self.task_index, self.task_content)
-    on_task_title: app.set_task_title(self.task_index, self.task_title)
-    on_task_sql: app.set_task_sql(self.task_index, self.task_sql)
-    on_task_type: app.set_task_type(self.task_index, self.task_type)
-    on_task_input: app.set_task_input(self.task_index, self.task_input)
-    on_task_output: app.set_task_output(self.task_index, self.task_output)
-    on_task_source: app.set_task_source(self.task_index, self.task_source)
-    object_fileds: lv_fields
-
-    BoxLayout:
-        orientation: 'vertical'
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint_y: None
-            height: '48dp'
-            padding: '5dp'
-            canvas:
-                Color:
-                    rgb: .3, .3, .3
-                Rectangle:
-                    pos: self.pos
-                    size: self.size
-            Button:
-                text: '<'
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
                 size_hint_x: None
                 width: self.height
-                on_release: app.go_tasks({'tttt':''})
-            TextInput:
-                id:ti_task_name
-                text: root.task_title
             Button:
                 text: 'Exec'
                 size_hint_x: None
                 width: self.height
+#                on_release: root.on_task_list_click()
             Button:
                 text: 'Save'
                 size_hint_x: None
                 width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':'', 'type':'SQL_Query', 'output':ti_output.text, 'input':ti_input_objects.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active})
             Button:
                 text: 'X'
                 size_hint_x: None
@@ -210,10 +334,15 @@
                     text_size: self.width, None
                     text: 'Available objects:'
                 ListView:
+                    id:lv_tasks
+                    halign: 'left'
+                    text_size: self.size
+                    adapter: ListAdapter( data=root.task_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_task_list_click)
+                ListView:
                     id:lv_fields
                     halign: 'left'
                     text_size: self.size
-                    adapter: ListAdapter( data=root.object_fileds.adapter.data, selection_mode='multiple', cls=classes.FiledListButton)
+                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_field_list_click_item)
 
             BoxLayout:
                 orientation: 'vertical'
@@ -226,12 +355,14 @@
                     id:ti_input_objects
                     size_hint_y: 0.2
                     height: '30dp'
-                    text: 'list of objects'
+                    text: root.task_input
+                StackLayout:
+                    id:st_layout
+                    size_hint_y: 0.4
                 TextInput:
                     id:ti_sql
                     multiline: True
-                    text: 'SQL'
-                    on_text:root.on_sql_texinput_change()
+                    text: root.task_sql
         BoxLayout:
             orientation: 'horizontal'
             size_hint_y: None
@@ -247,8 +378,12 @@
                 size_hint_y: None
                 height: '30dp'
                 text: root.task_output
-
-
+            Button:
+                text: 'View'
+                size_hint_y: None
+                size_hint_x: None
+                height: '30dp'
+                width: self.height + 10
 
 <TaskListItem>:
 
@@ -267,28 +402,35 @@
         Button:
             text: 'Del'
             size_hint_x: None
+            width: self.height * 1.5
             background_color: (0.5,0,0,1) if self.state == 'normal' else (0,1,0,1)
             background_normal: ""
             on_release: app.del_task(root.task_index)
         Label:
             background_color: (0,0,0.1,1)
             text: root.task_title
+        Switch:
+            size_hint_x: None
+            id:sw_exec
+            width: self.height * 3
+            on_active: app.on_skip_task(self, self.active, root.task_index)
+            active:root.task_exec
         Button:
             text: 'Execute'
             size_hint_x: None
             background_color: (0,0.5,0,1) if self.state == 'normal' else (0,1,0,1)
             background_normal: ""
-            width: self.height * 3
+            width: self.height * 2
             on_release: app.exec_task(root.task_index)
         Button:
             text: 'Up'
             size_hint_x: None
-            width: self.height * 2
+            width: self.height * 1.5
             on_release: app.up_task(root.task_index)
         Button:
             text: 'Down'
             size_hint_x: None
-            width: self.height * 2
+            width: self.height * 1.5
             on_release: app.down_task(root.task_index)
         Button:
             text: '>'
@@ -297,18 +439,13 @@
             on_release: app.edit_task(root.task_index)
 
 <Tasks>:
-
     BoxLayout:
-
         orientation: 'vertical'
-
         BoxLayout:
-
             orientation: 'horizontal'
             size_hint_y: None
             height: '48dp'
             padding: '5dp'
-
             canvas:
                 Color:
                     rgb: .3, .3, .3
@@ -317,15 +454,21 @@
                     size: self.size
 
             Image:
-                source: 'data/icon.png'
+                #source: 'C:\\Python_Projects\\mriyaQT\\icons\\Sql-runner-icon.png'
+                source: '..\\icons\\Sql-runner-icon.png'
                 mipmap: True
                 size_hint_x: None
                 width: self.height
 
             Label:
-                text: 'Tasks'
+                text: app.project.project_name
                 font_size: '16sp'
 
+            Button:
+                text: 'EXEC'
+                size_hint_x: None
+                width: self.height
+                on_release: app.exec_workflow()
             Button:
                 text: 'SF'
                 size_hint_x: None
@@ -339,3 +482,12 @@
 
         ListView:
             adapter: ListAdapter(data=root.data, cls=Factory.TaskListItem, args_converter=root.args_converter)
+        TextInput:
+            use_bubble:True
+            id: ti_log
+            size_hint_y: None
+            multiline: True
+            height: '100dp'
+            background_color: (0.8, 0.8, 0.8, 1)
+            text: ''
+
