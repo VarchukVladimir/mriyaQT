@@ -15,8 +15,11 @@ from kivy.config import Config
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 
 import json
-from os.path import join, exists
-from os import mkdir
+import re
+import sys
+from os import path as p
+from os import mkdir, getcwd
+
 from kivy.app import App, Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
 from kivy.properties import ListProperty, StringProperty, \
@@ -28,19 +31,19 @@ from kivy.uix.textinput import TextInput
 from data_connector import RESTConnector, SFBeatboxConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
-import re
-from os import path as p
 from migration_engine import MigrationWorkflow
 from sql_view import SQLView
 from sf_view import TaskView
 from start_screen import StartScreen
-import sys
-from cStringIO import StringIO
+from review_screen import ReviewScreen
+from project_utils import Capturing
+from kivy.core.window import Window
 
+default_project_dir = p.join(getcwd(), 'projects', 'R1', 'R1.mpr')
 
 Builder.load_file('mriya_qt.kv')
 
-standart_object_list_file = p.join('..','StandartObjectList.ini')
+standart_object_list_file = p.join('StandartObjectList.ini')
 
 StandartObjectList = ['Account', 'Contact', 'AccountCaontactRole', 'Lead', 'Opportunity', 'Task', 'Events', 'Notes', 'Attachment',
     'Campaign', 'CampaignMember', 'User', 'AccountTeamMember']
@@ -53,7 +56,7 @@ StandartObjectList_uppercase = [ object_item.upper() for object_item in Standart
 
 ObjectsList = []
 
-config_file = p.join("..","config.ini")
+config_file = p.join("config.ini")
 
 sf_object = None
 sf_source = None
@@ -73,7 +76,7 @@ def get_fields_rest(connection, sobject):
     return sorted(fields)
 
 class Project():
-    def __init__(self, file_name = 'C:\\Python_Projects\\mriyaQT\\data\\Simple_Project\\Simple_Project.json'):
+    def __init__(self, file_name = default_project_dir):
         if not p.exists(file_name):
             mkdir(file_name)
             mkdir( p.join(file_name, 'data'))
@@ -175,10 +178,8 @@ class ComboEdit(TextInput):
         ddn = self.drop_down = DropDown()
         ddn.bind(on_select=self.on_select)
         super(ComboEdit, self).__init__(**kw)
-        print(self.options)
 
     def on_options(self, instance, value):
-        print('combo on optios')
         ddn = self.drop_down
         ddn.clear_widgets()
         for widg in value:
@@ -186,8 +187,6 @@ class ComboEdit(TextInput):
             ddn.add_widget(widg)
 
     def on_select(self, *args):
-        print('onselect')
-        print(args[1])
         self.text = args[1]
 
     def on_touch_up(self, touch):
@@ -195,17 +194,6 @@ class ComboEdit(TextInput):
             self.drop_down.open(self)
         return super(ComboEdit, self).on_touch_up(touch)
 
-
-class Capturing(list):
-    def __enter__(self):
-        self._stdout = sys.stdout
-        sys.stdout = self._stringio = StringIO()
-        return self
-
-    def __exit__(self, *args):
-        self.extend(self._stringio.getvalue().splitlines())
-        del self._stringio    # free up some memory
-        sys.stdout = self._stdout
 
 class TaskListItem(BoxLayout):
     task_content = StringProperty()
@@ -225,11 +213,15 @@ class TaskListItem(BoxLayout):
         print(kwargs)
         super(TaskListItem, self).__init__(**kwargs)
 
+    def refresh_status(self):
+        # self.ids.label_task_name.background_color
+        if self.task_status == 'working':
+            print(self.task_status)
+
 class Tasks(Screen):
     data = ListProperty()
     def args_converter(self, row_index, item):
-        print('converter')
-        print(item)
+        print('ars_conveter')
         return {
             'task_index': row_index,
             'task_content': item['content'],
@@ -240,13 +232,15 @@ class Tasks(Screen):
             'task_output':item['output'],
             'task_source':item['source'],
             'task_exec':item['exec'],
-            'task_status':'Idle'
+            'task_status':item['status']
         }
+
 
 class TaskApp(App):
 
     def __init__(self, **kwargs):
         super(TaskApp, self).__init__(**kwargs)
+        self.default_project_dir = default_project_dir
 
     def build(self):
         self.start_screen = StartScreen()
@@ -263,7 +257,6 @@ class TaskApp(App):
         self.tasks.data = data
 
     def save_tasks(self):
-        print('TaskApp save tasks')
         self.project.project['workflow'] = self.tasks.data
         self.project.save()
 
@@ -274,7 +267,6 @@ class TaskApp(App):
         self.go_tasks(task_index)
 
     def edit_task(self, task_index):
-        print('TaskApp edit task')
         task = self.tasks.data[task_index]
         name = 'task{}'.format(task_index)
 
@@ -298,11 +290,7 @@ class TaskApp(App):
             )
             if task.get('source') != '':
                 view.objects_list = self.project.get_standart_sobjects(task.get('source'))
-            # if task.get('input') != '':
-            #     view.object_fileds = self.project.get_sobject_fileds(task.get('source'), task.get('input'))
         elif task.get('type') == 'SQL_Query':
-            print('sql query')
-            print(task)
             view = SQLView(
                 name=name,
                 task_index=task_index,
@@ -332,7 +320,7 @@ class TaskApp(App):
         if task_names_index:
             max_index = int(max(task_names_index)[len(projectname):]) + 1
         new_title_name = '{0}{1:02d}'.format(projectname, max_index)
-        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False})
+        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle'})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
 
@@ -340,6 +328,7 @@ class TaskApp(App):
         data = self.tasks.data
         self.tasks.data = []
         self.tasks.data = data
+        self.tasks.ids.lv_tasks._reset_spopulate()
 
     def go_tasks(self, task_item):
         self.save_tasks()
@@ -368,32 +357,41 @@ class TaskApp(App):
         self.save_tasks()
 
     def on_skip_task(self, instance, value, task_index):
-        print('{} skipped {}'.format(task_index, value))
-        print(self.tasks.data[task_index].keys())
         self.tasks.data[task_index]['exec'] = value
 
     def go_to_project(self, prject_file):
         self.project = Project(prject_file)
-        print('project name')
-        print(self.project.project_name)
         self.tasks = Tasks(name='tasks')
         self.load_tasks()
         self.root.add_widget(self.tasks)
         self.transition.direction = 'left'
         self.root.current = self.tasks.name
 
+    def go_to_review_screen(self, output_path):
+        review_screen = ReviewScreen(name=p.basename(output_path), file_name=output_path, previous_screen=self.root.current)
+        if self.root.has_screen(review_screen.name):
+            self.root.remove_widget(self.root.get_screen(review_screen.name))
+        self.root.add_widget(review_screen)
+        self.transition.direction = 'left'
+        self.root.current = review_screen.name
+
+    def go_back_to_task(self, previous_screen):
+        self.transition.direction = 'right'
+        self.root.current = previous_screen
+
     def exec_workflow(self):
-        cmd_exec = []
         connection_dict = {}
         for task_item in self.tasks.data:
-            print(task_item)
             if task_item['exec'] and  task_item['type'] == 'SF_Query' and task_item['source'] not in connection_dict.keys():
                 connection_dict[task_item['source']] = RESTConnector(get_conn_param(config[task_item['source']]))
 
         for task_item in self.tasks.data:
             cmd_exec = []
-            print(task_item['exec'])
             if task_item['exec']:
+                task_item['status'] = 'working'
+                save_title = task_item['title']
+                task_item['title'] =  '{} [working]'.format(task_item['title'])
+                self.refresh_tasks()
                 if task_item['type'] == 'SQL_Query':
                     cmd_exec = [{
                         '':{'input_data':[ input_path.strip() for input_path in task_item['input'].split(',')],
@@ -414,20 +412,21 @@ class TaskApp(App):
                                'message':''
                                }
                     }]
-            self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
-            with Capturing() as output:
-                try:
-                    wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
-                    wf_task.execute_workflow()
-                except:
-                    print "Unexpected error:", sys.exc_info()
-            for line in output:
-                if not line.startswith('Wait for job done'):
-                    self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
-
-            print(output)
-            print(type(output))
-                # self.root.current.ids.ti_log.text = output
+                self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
+                with Capturing() as output:
+                    try:
+                        wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
+                        wf_task.execute_workflow()
+                    except:
+                        print "Unexpected error:", sys.exc_info()
+                for line in output:
+                    if not line.startswith('Wait for job done'):
+                        self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
+                task_item['status'] = 'idle'
+                task_item['title'] = save_title
+                self.refresh_tasks()
+                # self.tasks.ids.lv_tasks._trigger_reset_populate()
+#
 
 if __name__ == '__main__':
     TaskApp(title="Mriya Query Tool").run()
