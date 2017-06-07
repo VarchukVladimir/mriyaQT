@@ -5,7 +5,7 @@ __email__ = "vladimir.varchuk@rackspace.com"
 import logging
 from project_utils import Timer
 from json import load, dump
-import csvquerytool
+import csvquerytool_table_names
 import re
 
 
@@ -113,7 +113,7 @@ class MigrationWorkflow:
         print('\t'+job_message)
         if type(output_data) == str:
             output_data = open(output_data, 'w')
-        csvquerytool.run_query(sql,input_data,output_data)
+        csvquerytool_table_names.run_query(sql,input_data,output_data)
         return job_message
 
 
@@ -131,7 +131,7 @@ class MigrationWorkflow:
         logging.info('Input data {}'.format(input_data))
         logging.info('Output data {}'.format(output_data))
         logging.info(sql)
-        csvquerytool.run_query(sql,input_data,open(output_data, 'w'))
+        csvquerytool_table_names.run_query(sql,input_data,open(output_data, 'w'))
         return job_message
 
 
