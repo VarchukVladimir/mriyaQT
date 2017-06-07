@@ -15,8 +15,6 @@ from salesforce_bulk__ import *
 import json
 import requests
 from json import loads, load, dump, dumps
-import re
-import csvquerytool
 import StringIO
 from multiprocessing import Pool, Queue
 from httplib2 import Http
