@@ -10,7 +10,7 @@ _logger = logging.getLogger(__file__)
 
 AUTO_RENAME_DUPLICATE_COLUMN_NAMES = True
 DEFAULT_ENCODING = 'UTF-8'
-GUESS_TYPE_FROM_N_ROWS = 10000
+GUESS_TYPE_FROM_N_ROWS = 10000000
 ROW_PADDING_STRING = '' # if a row is truncated, missing cells will be filled in with this string
 
 # TODO: sqlite only natively supports the types TEXT, INTEGER, FLOAT, BLOB and NULL.
