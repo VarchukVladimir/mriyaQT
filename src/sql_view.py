@@ -87,6 +87,9 @@ Button:
             for tasks in self.project.project['workflow']:
                 if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
                     fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
+                if tasks['type'] == 'SQL_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
+                    fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
+
             self.field_list.adapter.data = fields_selected_task
             self.field_list.adapter.bind(on_selection_change=self.on_field_list_click_item)
             if 'ctrl' in self.parent.parent.parent.parent.parent.modifiers:
