@@ -3,11 +3,11 @@ __email__ = "vladimir.varchuk@rackspace.com"
 
 
 import logging
-from project_utils import Timer
+from project_utils import Timer, check_result
 from json import load, dump
 import csvquerytool_table_names
 import re
-
+from os import path as p
 
 WF_EXECUTE = 'execute'
 WF_MAPPING = 'mapping'
@@ -70,6 +70,7 @@ class MigrationWorkflow:
 
         print('\t'+job_message)
         logging.info(job_message)
+        json_result_file = output_data
         if job_type == JT_QUERY:
             res = connector.bulk_load ( object, input_data, None, output_data)
             rf = open(output_data,'r')
@@ -81,6 +82,11 @@ class MigrationWorkflow:
                     columns = [ column.strip() for column in res_re]
                     w_str = ','.join(['"{0}"'.format(column) for column in columns])
                     f.write(w_str)
+        else:
+            json_result_file = p.join(p.split(job_params['input_data'])[0], p.split(job_params['input_data'])[1].split('.')[0] + 'exec_result.json')
+            print(json_result_file)
+
+
         if job_type == JT_UPSERT:
             external_id_name = job_params['exteranl_id_name'][0]
             res = connector.bulk_upsert(object, external_id_name, input_data)
@@ -90,8 +96,17 @@ class MigrationWorkflow:
             res = connector.bulk_update(object, input_data, external_id_name)
         if job_type == JT_DELETE:
             res = connector.bulk_delete(object, job_params['where_condition'], external_id_name)
-        if res:
+        # if res:
+        #     dump(res,open(output_data,'w'))
+        if res is not None:
+            if (output_data is None or output_data == ''):
+                output_data = json_result_file
             dump(res,open(output_data,'w'))
+            if job_type != JT_QUERY:
+                if output_data == json_result_file:
+                    check_result(job_message, json_result_file)
+                else:
+                    check_result(job_message, output_data)
 
 
         return job_message
@@ -120,6 +135,12 @@ class MigrationWorkflow:
     def execute_mapping(self, mapping_params):
         job_message = mapping_params['message']
         mapping_info = mapping_params['mapping_info']
+
+        # if type(mapping_params['mapping_info']) is mapping_parser.JoinedMappingParser:
+        #     mapping_info = mapping_params['mapping_info']
+        # else:
+        #     mapping_info = mapping_parser.JoinedMappingParser(json.load(open(mapping_params['mapping_info'], 'r'))[0])
+
         input_data = mapping_params['input_data']
         output_data = mapping_params['output_data']
         print('\t'+job_message)
