@@ -36,11 +36,12 @@ from sql_view import SQLView
 from sf_view import TaskView
 from start_screen import StartScreen
 from review_screen import ReviewScreen
+from sf_execute_view import BatchExecuteView
 from project_utils import Capturing
 from kivy.core.window import Window
 
 default_project_dir = p.join(getcwd(), 'projects', 'R1', 'R1.mpr')
-
+default_application_dir = p.join(p.expanduser('~'), 'work')
 Builder.load_file('mriya_qt.kv')
 
 standart_object_list_file = p.join('StandartObjectList.ini')
@@ -171,6 +172,13 @@ class Project():
             sql_fields = [field_item.strip() for field_item in re_res.split(',')]
         return sql_fields
 
+    def _get_fields_from_csv(self, csv_file):
+        field_names = []
+        if p.exists(csv_file):
+            with open(csv_file) as f:
+                field_names = f.readline().replace('"','').strip().split(',')
+        return field_names
+
 
 class ComboEdit(TextInput):
     options = ListProperty(('', ))
@@ -241,6 +249,7 @@ class TaskApp(App):
     def __init__(self, **kwargs):
         super(TaskApp, self).__init__(**kwargs)
         self.default_project_dir = default_project_dir
+        self.default_application_dir = default_application_dir
 
     def build(self):
         self.start_screen = StartScreen()
@@ -305,6 +314,24 @@ class TaskApp(App):
                 project=self.project
             )
             view.task_list.adapter.data = [task_name['title'] for task_name in self.tasks.data[:task_index]]
+            view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
+        elif task.get('type') == 'SF_Execute':
+            view = BatchExecuteView(
+                name=name,
+                task_index=task_index,
+                task_title=task.get('title'),
+                task_content=task.get('content'),
+                task_sql=task.get('sql'),
+                task_type=task.get('type'),
+                task_input=task.get('input'),
+                task_output=task.get('output'),
+                task_source=task.get('source'),
+                task_exec=task.get('exec'),
+                sources_list = SourceList,
+                preview_text = '',
+                project=self.project
+            )
+            view.task_list = [task_name['title'] for task_name in self.tasks.data[:task_index]]
             view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
         self.root.add_widget(view)
         self.transition.direction = 'left'
@@ -402,6 +429,17 @@ class TaskApp(App):
                                 }
                     }]
                 elif task_item['type'] == 'SF_Query':
+                    cmd_exec = [{
+                    'execute':{'input_data':task_item['sql'],
+                               'connector':connection_dict[task_item['source']],
+                               'object':self.project.get_object_from_sql(task_item['sql']),
+                               'command':'query',
+                               'tag':None,
+                               'output_data':task_item['output'],
+                               'message':''
+                               }
+                    }]
+                elif task_item['type'] == 'SF_Execute':
                     cmd_exec = [{
                     'execute':{'input_data':task_item['sql'],
                                'connector':connection_dict[task_item['source']],
