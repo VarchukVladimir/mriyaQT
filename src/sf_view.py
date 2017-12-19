@@ -33,7 +33,6 @@ class TaskView(Screen):
         self.previous_source = self.task_source
         self.source_object_field_list = {}
         self.selection = {}
-        print(self.task_source, self.task_input)
         self.objects_list = self.project.get_standart_sobjects(self.task_source)
         if self.task_source in self.sources_list and self.task_input in self.project.get_sobjects(self.task_source):
             self.source_object_field_list = { field_item.lower():field_item for field_item in self.project.get_sobject_fileds(self.task_source, self.task_input)}
