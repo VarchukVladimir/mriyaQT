@@ -118,6 +118,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
+            path:app.default_application_dir
 
         BoxLayout:
             size_hint_y: None
@@ -138,6 +139,7 @@
         orientation: "vertical"
         FileChooserListView:
             id: filechooser
+            path:app.default_application_dir
             on_selection: text_input.text = self.selection and self.selection[0] or ''
 
         TextInput:
@@ -398,6 +400,163 @@
                         width: self.height + 10
                         on_release: app.go_to_review_screen(root.task_output)
 
+<BatchExecuteView>:
+
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_title_changed(app.get_task_names())
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Exec'
+                size_hint_x: None
+                width: self.height
+#                on_release: root.on_task_list_click()
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':'', 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_input_objects.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ti_command.text})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source:'
+                ComboEdit:
+                    id:ce_source
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
+                    text: 'Select source' if root.task_source == '' else root.task_source
+                    on_text: root.read_controls(app.get_task_names())
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Object:'
+                ComboEdit:
+                    id:ce_object
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
+                    text: 'Select object' if app.project.get_object_from_sql(root.task_sql) is None and app.project.get_object_from_sql(root.task_sql) not in app.project.get_sobjects(self.ce_source) else app.project.get_object_from_sql(root.task_sql)
+#                    on_text:root.read_controls(app.get_task_names())
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Exec type:'
+                ComboEdit:
+                    id:ce_exec_type
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['insert', 'update', 'delete']]
+#                    text: 'Select object' if app.project.get_object_from_sql(root.task_sql) is None and app.project.get_object_from_sql(root.task_sql) not in app.project.get_sobjects(self.ce_source) else app.project.get_object_from_sql(root.task_sql)
+                    on_text:root.on_exec_type_text()
+
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source file:'
+                ComboEdit:
+                    id:ce_source_file
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.task_list]
+                    on_text:root.on_exec_type_text()
+
+                ListView:
+                    id:lv_tasks_
+                    halign: 'left'
+                    text_size: self.size
+                Label:
+                    text: 'Output file:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Preview file:'
+                BoxLayout:
+                    orientation: 'horizontal'
+                    TextInput:
+                        id: ti_text_input_source_file_name
+                        height: 35
+                        multiline: False
+                        text:root.preview_source_file_name
+                    TextInput:
+                        id: ti_lines
+                        size_hint_x: None
+                        size_hint_y: None
+                        height: 35
+                        width: 50
+                        multiline: False
+                        text:'200'
+                        on_text:root.load_data(ti_text_input_source_file_name.text)
+
+                TextInput:
+                    id:ti_source_preview
+                    multiline: True
+                    text: root.preview_text
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_output
+                        size_hint_y: None
+                        height: '30dp'
+                        text: root.task_output
+                    Button:
+                        text: 'View'
+                        size_hint_y: None
+                        size_hint_x: None
+                        height: '30dp'
+                        width: self.height + 10
+                        on_release: app.go_to_review_screen(root.task_output)
+
+
 <TaskListItem>:
     height: '48sp'
     size_hint_y: None
@@ -422,7 +581,7 @@
             id:label_task_name
             canvas.before:
                 Color:
-                    rgb: (0.3,0.3,0.5,1) if root.task_type!='SQL_Query' else (0.4,0.4,0.4,1)
+                    rgb: (0.3,0.3,0.5,1) if root.task_type=='SQL_Query' else (0.4,0.4,0.4,1) if root.task_type=='SF_Query' else (0.4,0.4,0.5,1)
                 Rectangle:
                     pos: self.pos
                     size: self.width, self.height
@@ -497,6 +656,11 @@
                 size_hint_x: None
                 width: self.height
                 on_release: app.add_task('SQL_Query')
+            Button:
+                text: 'SF_Exec'
+                size_hint_x: None
+                width: self.height
+                on_release: app.add_task('SF_Execute')
 
         ListView:
             id:lv_tasks
