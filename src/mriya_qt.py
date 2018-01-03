@@ -40,7 +40,8 @@ from sf_execute_view import BatchExecuteView
 from project_utils import Capturing
 from kivy.core.window import Window
 
-default_project_dir = p.join(getcwd(), 'projects', 'R1', 'R1.mpr')
+default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
+# default_project_dir = p.join(getcwd(), 'projects', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
 Builder.load_file('mriya_qt.kv')
 
@@ -209,6 +210,7 @@ class TaskListItem(BoxLayout):
     task_index = NumericProperty()
     task_sql = StringProperty()
     task_type = StringProperty()
+    # task_command = StringProperty()
     task_input = StringProperty()
     task_output = StringProperty()
     task_source = StringProperty()
@@ -229,19 +231,34 @@ class TaskListItem(BoxLayout):
 class Tasks(Screen):
     data = ListProperty()
     def args_converter(self, row_index, item):
-        print('ars_conveter')
-        return {
-            'task_index': row_index,
-            'task_content': item['content'],
-            'task_title': item['title'],
-            'task_sql':item['sql'],
-            'task_type':item['type'],
-            'task_input':item['input'],
-            'task_output':item['output'],
-            'task_source':item['source'],
-            'task_exec':item['exec'],
-            'task_status':item['status']
-        }
+        # if item is SF_Execute type it may have command key
+        if 'command' in item.keys():
+            return {
+                'task_index': row_index,
+                'task_content': item['content'],
+                'task_title': item['title'],
+                'task_sql':item['sql'],
+                'task_type':item['type'],
+                'task_command':item['command'],
+                'task_input':item['input'],
+                'task_output':item['output'],
+                'task_source':item['source'],
+                'task_exec':item['exec'],
+                'task_status':item['status']
+            }
+        else:
+            return {
+                'task_index': row_index,
+                'task_content': item['content'],
+                'task_title': item['title'],
+                'task_sql':item['sql'],
+                'task_type':item['type'],
+                'task_input':item['input'],
+                'task_output':item['output'],
+                'task_source':item['source'],
+                'task_exec':item['exec'],
+                'task_status':item['status']
+            }
 
 
 class TaskApp(App):
@@ -322,6 +339,7 @@ class TaskApp(App):
                 task_title=task.get('title'),
                 task_content=task.get('content'),
                 task_sql=task.get('sql'),
+                task_command=task.get('command'),
                 task_type=task.get('type'),
                 task_input=task.get('input'),
                 task_output=task.get('output'),
@@ -347,7 +365,7 @@ class TaskApp(App):
         if task_names_index:
             max_index = int(max(task_names_index)[len(projectname):]) + 1
         new_title_name = '{0}{1:02d}'.format(projectname, max_index)
-        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':'', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle'})
+        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':' ', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle', 'command':'update'})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
 
@@ -409,7 +427,7 @@ class TaskApp(App):
     def exec_workflow(self):
         connection_dict = {}
         for task_item in self.tasks.data:
-            if task_item['exec'] and  task_item['type'] == 'SF_Query' and task_item['source'] not in connection_dict.keys():
+            if task_item['exec'] and  (task_item['type'] == 'SF_Query' or task_item['type'] == 'SF_Execute') and task_item['source'] not in connection_dict.keys():
                 connection_dict[task_item['source']] = RESTConnector(get_conn_param(config[task_item['source']]))
 
         for task_item in self.tasks.data:
@@ -440,17 +458,21 @@ class TaskApp(App):
                                }
                     }]
                 elif task_item['type'] == 'SF_Execute':
+                    # print(connection_dict)
+                 # {'sql':'', 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text}
+
                     cmd_exec = [{
-                    'execute':{'input_data':task_item['sql'],
+                    'execute':{'input_data':task_item['input'],
                                'connector':connection_dict[task_item['source']],
-                               'object':self.project.get_object_from_sql(task_item['sql']),
-                               'command':'query',
+                               'object':'Account',
+                               'command':task_item['command'],
                                'tag':None,
                                'output_data':task_item['output'],
                                'message':''
                                }
                     }]
                 self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
+                print(cmd_exec)
                 with Capturing() as output:
                     try:
                         wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
