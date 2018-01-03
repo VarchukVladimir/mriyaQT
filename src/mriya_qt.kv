@@ -401,7 +401,6 @@
                         on_release: app.go_to_review_screen(root.task_output)
 
 <BatchExecuteView>:
-
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
@@ -442,7 +441,7 @@
                 text: 'Save'
                 size_hint_x: None
                 width: self.height
-                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':'', 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_input_objects.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ti_command.text})
+                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text})
             Button:
                 text: 'X'
                 size_hint_x: None
@@ -474,7 +473,7 @@
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
-                    text: 'Select object' if app.project.get_object_from_sql(root.task_sql) is None and app.project.get_object_from_sql(root.task_sql) not in app.project.get_sobjects(self.ce_source) else app.project.get_object_from_sql(root.task_sql)
+                    text: 'Select object' if root.task_sql is None  else root.task_sql
 #                    on_text:root.read_controls(app.get_task_names())
                 Label:
                     size_hint_y: None
@@ -486,7 +485,7 @@
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['insert', 'update', 'delete']]
-#                    text: 'Select object' if app.project.get_object_from_sql(root.task_sql) is None and app.project.get_object_from_sql(root.task_sql) not in app.project.get_sobjects(self.ce_source) else app.project.get_object_from_sql(root.task_sql)
+                    text: 'Select operation type' if root.task_command is None  else root.task_command
                     on_text:root.on_exec_type_text()
 
                 Label:
@@ -499,8 +498,8 @@
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.task_list]
+                    text: 'Select source file' if root.task_input is None else root.get_task_name_from_file(root.task_input)
                     on_text:root.on_exec_type_text()
-
                 ListView:
                     id:lv_tasks_
                     halign: 'left'
@@ -520,9 +519,13 @@
                     text: 'Preview file:'
                 BoxLayout:
                     orientation: 'horizontal'
+                    #size_hint_x: None
+                    size_hint_y: None
+                    height:'35dp'
                     TextInput:
                         id: ti_text_input_source_file_name
                         height: 35
+                        size_hint_y: None
                         multiline: False
                         text:root.preview_source_file_name
                     TextInput:
@@ -534,7 +537,6 @@
                         multiline: False
                         text:'200'
                         on_text:root.load_data(ti_text_input_source_file_name.text)
-
                 TextInput:
                     id:ti_source_preview
                     multiline: True
