@@ -9,16 +9,21 @@ import beatbox
 import logging
 import sys
 import csv
-from project_utils import printProgress, spin, get_object_name
+from project_utils import spin, get_object_name, from_csv_to_dict, printProgress
+# from project_utils_engine import
 from collections import namedtuple
 from salesforce_bulk__ import *
 import json
 import requests
 from json import loads, load, dump, dumps
+import re
+import csvquerytool
 import StringIO
 from multiprocessing import Pool, Queue
+import sqlparse
+import requests
+from sf_merge import SoapMerge
 from httplib2 import Http
-
 
 ConnectorParam = namedtuple('ConnectorParam',
                          ['username', 'password', 'url_prefix',
@@ -26,12 +31,20 @@ ConnectorParam = namedtuple('ConnectorParam',
                           'consumer_secret', 'token', 'threads'])
 UploaderParam = namedtuple('UploaderParam',
                          ['job' ,'header', 'batch_data', 'batch_number'])
+MultithreadLoadParam = namedtuple('MultithreadLoadParam', ['object_name', 'soql', 'header_columns', 'csv_file', 'condition'])
 
 QUERY_LIMIT = 200
+BATCH_SIZE = 200
 session_file = 'sessions.ini'
 DS_TYPE_SF = 'SALESFORCE'
 DS_TYPE_JSON = 'JSON'
 DS_TYPE_CSV = 'CSV'
+
+SOAP_MERGE_REQUEST_HEADERS = {
+    'content-type': 'text/xml',
+    'charset': 'UTF-8',
+    'SOAPAction': 'merge'
+}
 
 
 def get_conn_param(conf_dict):
@@ -195,6 +208,87 @@ class SFBeatboxConnector:
             result = self.svc.update(raw_data)
         return result
 
+    def merge(self, object_name, input_data):
+        """
+        data should be:
+        MasterId,MergedId
+        000001,000002
+        000001,000003
+        000001,000004
+        000005,000006
+        000005,000007
+        """
+
+        if type(input_data) == str:
+            raw_data = from_csv_to_dict(input_data)
+        else:
+            raw_data = input_data
+
+        #check if there are no merged ids in master ids list
+        for i,master_row in enumerate(raw_data):
+            merged_count = 0
+            for j,merge_row in enumerate(raw_data):
+                if master_row['MasterId'] == merge_row['MergedId']:
+                    print("It is impossible to perform merge operation on this data set. MasterId {} apears as MergedId".format(master_row['MasterId']))
+                    return -1
+                if master_row['MergedId'] == merge_row['MergedId'] and i <> j:
+                    print("It is impossible to perform merge operation on this data set. MergedId {} apears in two different rows".format(master_row['MergedId']))
+                    return -1
+
+        # convert to format [{'master_id':['merged_id1', 'merged_id2', 'merged_id3']}]
+        # calculate how many attepts needed to complete task
+        data = {}
+        max_merged_count = 0
+        for master_row in raw_data:
+            if master_row['MasterId'] not in data.keys():
+                merge_ids = []
+                for merge_row in raw_data:
+                    if master_row['MasterId']== merge_row['MasterId']:
+                        merge_ids.append(merge_row['MergedId'])
+                if len(merge_ids) > max_merged_count:
+                    max_merged_count = len(merge_ids)
+                data[master_row['MasterId']] = merge_ids
+        print(data)
+
+        max_merged_ids = max([len(merged_ids)] for merged_ids in data.itervalues())[0]
+
+        save_max_merged_ids = max_merged_ids
+        batch = {}
+        while len(data) > 0:
+            while max_merged_ids > 0:
+                for master_id in data.keys():
+                    merge_ids = data[master_id]
+                    if len(merge_ids) == max_merged_ids:
+                        if master_id not in batch.keys() and BATCH_SIZE>len(batch):
+                            batch[master_id]=merge_ids[:2]
+                            del merge_ids[:2]
+                            if len(merge_ids) == 0:
+                                del data[master_id]
+                        elif BATCH_SIZE<=len(batch):
+                            max_merged_ids -= 1
+                            self._run_merge(batch_data=batch, object_name=object_name)
+                            batch = {}
+                            max_merged_ids = save_max_merged_ids
+                max_merged_ids -= 1
+            self._run_merge(batch_data=batch, object_name=object_name)
+            batch = {}
+            max_merged_ids = save_max_merged_ids
+
+
+    def _count_dups(self, data):
+        pass
+
+    def _run_merge(self, batch_data, object_name):
+        soap_merge = SoapMerge(instance_url=self.svc.serverUrl , sessionid= self.svc.sessionId)
+        merge_result = soap_merge.merge(object_name, batch_data)
+        return merge_result
+
+    def _result(self, res):
+        if 'mergeResponse' in res:
+            return res['mergeResponse']
+        else:
+            return [res]
+
 
 class DictAdapter:
     def __init__(self, headers=None, first_row_is_header=True):
@@ -230,7 +324,7 @@ class DictAdapter:
 
 
 class RESTConnector:
-    def __init__(self, connector_param, batch_size=10000):
+    def __init__(self, connector_param, batch_size=5000):
         self.connector_param = connector_param
         self.instance_url = 'https://' + connector_param.url_prefix + 'salesforce.com'
         self.token_url = 'https://' + connector_param.url_prefix + 'salesforce.com/services/oauth2/token'
@@ -316,10 +410,104 @@ class RESTConnector:
         dump(tokens_dict, open(session_file, 'w'))
 
 
+    def _get_soql_template(self, soql):
+        print(sqlparse.parse(soql))
+        print(sqlparse.split(soql))
+        print(sqlparse.format(soql))
+        stmt = sqlparse.parse(soql)[0]
+        soql_template = ''
+        find_where =  False
+        for token in stmt.tokens:
+            if str(token).lower().startswith('where'):
+                soql_template = soql_template + str(token) + ' AND {0} '
+                find_where = True
+            else:
+                soql_template = soql_template + str(token)
+        if not find_where:
+            find_from = False
+            for token in stmt.tokens:
+                if str(token).lower().startswith('from'):
+                    find_from = True
+                if find_from and (str(token).lower().startswith('order') or str(token).lower().startswith('limit') or str(token).lower().startswith('group')):
+                    soql_template = soql_template + ' WHERE {0}'
+                soql_template = soql_template + str(token)
+        return soql_template
+
+    def fast_load(self, object, soql, header_columns=None, csv_file=None):
+        load_threads = 5
+        ids_in_batch = 10000
+        csv_file_ids = csv_file.split('.')[0] + '_ids.' + csv_file.split('.')[1]
+        csv_file_template = csv_file.split('.')[0] + '_from_{0}_to_{1}.' + csv_file.split('.')[1]
+        soql_template = self._get_soql_template(soql)
+        ids_soql = 'SELECT Id ' + soql[soql.lower().find('from'):]
+        # self.bulk_load(object, ids_soql, None, csv_file_ids)
+        ids = from_csv_to_dict(csv_file_ids)
+        ids_list_rand = []
+        for item in ids:
+            ids_list_rand.append(item['Id'])
+        ids_sorted = sorted(ids_list_rand)
+        iteration = 1
+        batches = []
+        last_id = ids_sorted[0]
+
+        while ids_in_batch * iteration <= len(ids_sorted):
+            print(ids_in_batch * iteration)
+            batches.append({
+                'condition':"(Id>='{0}' AND Id<'{1}')".format(last_id, ids_sorted[ids_in_batch * iteration]),
+                'file':csv_file_template.format(last_id, ids_sorted[ids_in_batch * iteration]),
+                'soql':soql_template.format("(Id>='{0}' AND Id<'{1}')".format(last_id, ids_sorted[ids_in_batch * iteration]))
+            })
+            last_id = ids_sorted[ids_in_batch * iteration]
+            iteration = iteration + 1
+        batches.append({
+                'condition':"(Id>='{0}' AND Id<='{1}')".format(last_id, ids_sorted[-1]),
+                'file':csv_file_template.format(last_id, ids_sorted[-1]),
+                'soql':soql_template.format("(Id>='{0}' AND Id<='{1}')".format(last_id, ids_sorted[-1]))
+        })
+        print(len(ids_sorted))
+        print(batches)
+        self.q_in = Queue(maxsize=load_threads + 1)
+        self.q_out = Queue(maxsize=load_threads + 1)
+        pool = Pool(load_threads, self.worker_load_batch, (self, ))
+        for i, batch in enumerate(batches):
+            params = MultithreadLoadParam(object, batch['soql'], None, batch['file'], batch['condition'])
+            self.q_in.put(params)
+            print('put', params)
+            if not self.q_out.empty():
+                while not self.q_out.empty():
+                    batch_result = self.q_out.get()
+
+                    for batch_item in batches:
+                        if batch_item['condition'] == batch_result['condition']:
+                            batch_item['success'] = batch_result['success']
+            sleep(5)
+        print('end')
+        print(batches)
+        self.q_out.close()
+        self.q_in.close()
+        pool.close()
+
+
+    def worker_load_batch(self, test):
+        while True:
+            params = self.q_in.get()
+            # batch_executer = SalesforceBulk(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='37.0')
+            batch_executer = RESTConnector(self.connector_param)
+            try:
+                batch_executer.bulk_load(params.object_name, params.soql, None, params.csv_file)
+            except:
+                print('error {}'.format(params.condition))
+                self.q_out.put({'condition':params.condition, 'success':False})
+            else:
+                print('fine {}'.format(params.condition))
+                self.q_out.put({'condition':params.condition, 'success':True})
+
+
     def bulk_load(self, object, soql, header_columns=None, csv_file=None):
         """
         :rtype : executing query and save result in csv or json file
         """
+        print('run job {}'.format(soql))
         try:
             job = self.bulk.create_query_job(object)
         except:
@@ -509,6 +697,14 @@ class RESTConnector:
         self.bulk.close_job(delete_job)
         return self.return_result_batches(delete_job,batches,external_keys=external_keys)
 
+    def bulk_simple_delete(self, object_name, records_for_deleting):
+        external_keys=['id']
+        delete_job = self.bulk.create_job(object_name=object_name, operation='delete')
+        batches = self.batches_uploader(job=delete_job,data=records_for_deleting,batch_size=self.batch_size, external_keys=external_keys)
+        self.connector_wait(job=delete_job,batches_in=batches,ending_message='deletion done')
+        self.bulk.close_job(delete_job)
+        return self.return_result_batches(delete_job,batches,external_keys=external_keys)
+
 
     def bulk_upsert(self, object, external_id_name, data):
         job = self.bulk.create_upsert_job(object_name=object, external_id_name=external_id_name, contentType='CSV')
@@ -608,36 +804,4 @@ class RESTConnector:
                                   quotechar='"')
         else:
             return r.iter_lines(chunk_size=2048)
-
-
-    # def bulk_delete_custom(self, object, condition):
-    #     soql = 'SELECT Id FROM {object_name} WHERE {condition}'.format(object_name=object, condition=condition)
-    #     records_to_deletion = self.bulk_load(object,soql)
-    #
-    #
-    #     del_id = self.bulk.create_job(object,'delete',contentType='JSON')
-    #     # splitting result json to batches
-    #     row_count = 0
-    #     batch_dict= []
-    #     for row in records_to_deletion:
-    #         row_count = row_count + 1
-    #         batch_dict.append(row)
-    #         if row_count == 10000:
-    #             pass
-    #     # for row in res
-    #
-
-# def worker_uploader(q_in, q_out):
-#     # UploaderParam
-#     # job, header, batch_data
-#     # job, header, batch_data, batch_number,
-#     params = q_in.get()
-#     batch_csv_io = StringIO.StringIO()
-#     batch_csv = csv.DictWriter(batch_csv_io, params.header, quoting=csv.QUOTE_ALL)
-#     batch_csv.writeheader()
-#     for row in params.batch_data:
-#         batch_csv.writerow(row)
-#     q_out.put({'batch_number':params.batch_number, 'batch_id': params.connection.bulk.post_bulk_batch(params.job, batch_csv_io.getvalue())})
-
-
 
