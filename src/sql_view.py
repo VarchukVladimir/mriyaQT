@@ -5,6 +5,7 @@ from kivy.properties import NumericProperty, StringProperty, BooleanProperty, Ob
 from kivy.uix.screenmanager import Screen
 from kivy.app import Builder
 from os import path as p
+from kivy.core.window import Window
 
 class SQLView(Screen):
     task_index = NumericProperty()
@@ -33,6 +34,18 @@ class SQLView(Screen):
         print(self.selection)
         if self.selection:
             self.refresh_input_task_buttons()
+        Window.bind(on_key_down=self.key_callback)
+        self.local_modifiers = []
+
+    def key_callback(self, keyboard, keycode, text, modifiers, a):
+        print(a)
+        print(keycode)
+        self.local_modifiers = []
+        if keycode==308:
+            self.local_modifiers.append('alt')
+        elif keycode==305:
+            self.local_modifiers.append('ctrl')
+
 
     def on_text_input_objects(self):
         save_inputs = self.ids.ti_input_objects.text
@@ -73,7 +86,8 @@ Button:
 
     def on_task_list_click(self, d):
         if self.task_list.adapter.selection:
-            if 'ctrl' in self.parent.parent.parent.parent.parent.modifiers:
+            print('modifiers')
+            if 'ctrl' in self.local_modifiers:
                 if self.task_list.adapter.selection[0].text.lower() not in self.selection.keys():
                     selection_values = []
                     for workflow_item in self.project.project['workflow']:
@@ -92,7 +106,7 @@ Button:
 
             self.field_list.adapter.data = fields_selected_task
             self.field_list.adapter.bind(on_selection_change=self.on_field_list_click_item)
-            if 'ctrl' in self.parent.parent.parent.parent.parent.modifiers:
+            if 'ctrl' in self.local_modifiers:
                 cr, cl = self.ids.ti_sql.cursor
                 insert_text = 'SELECT  FROM {table_name}'.format(table_name=self.task_list.adapter.selection[0].text)
                 self.ids.ti_sql.insert_text( insert_text )
