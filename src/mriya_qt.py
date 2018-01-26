@@ -38,7 +38,7 @@ from start_screen import StartScreen
 from review_screen import ReviewScreen
 from sf_execute_view import BatchExecuteView
 from project_utils import Capturing
-
+from kivy.core.window import Window
 
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 # default_project_dir = p.join(getcwd(), 'projects', 'test_exec', 'test_exec.mpr')
