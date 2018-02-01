@@ -28,7 +28,7 @@ from httplib2 import Http
 ConnectorParam = namedtuple('ConnectorParam',
                          ['username', 'password', 'url_prefix',
                           'organization_id', 'consumer_key',
-                          'consumer_secret', 'token', 'threads'])
+                          'consumer_secret', 'token', 'threads', 'security_token'])
 UploaderParam = namedtuple('UploaderParam',
                          ['job' ,'header', 'batch_data', 'batch_number'])
 MultithreadLoadParam = namedtuple('MultithreadLoadParam', ['object_name', 'soql', 'header_columns', 'csv_file', 'condition'])
@@ -55,7 +55,8 @@ def get_conn_param(conf_dict):
                            conf_dict['consumer_key'].encode('utf-8'),
                            conf_dict['consumer_secret'].encode('utf-8'),
                            '',
-                           int(conf_dict['threads'].encode('utf-8')))
+                           int(conf_dict['threads'].encode('utf-8')),
+                           conf_dict['security_token'].encode('utf-8'))
     return param
 
 
@@ -370,7 +371,7 @@ class RESTConnector:
             'client_id': self.connector_param.consumer_key,
             'client_secret': self.connector_param.consumer_secret,
             'username': self.connector_param.username,
-            'password': self.connector_param.password
+            'password': '{password}{security_token}'.format(password=self.connector_param.password,security_token=self.connector_param.security_token)
         }
         result = requests.post(self.token_url, headers={"Content-Type":"application/x-www-form-urlencoded"}, data=req_param)
         result_dict = loads(result.content)
