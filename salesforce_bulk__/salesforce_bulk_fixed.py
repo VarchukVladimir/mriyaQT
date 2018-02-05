@@ -135,13 +135,10 @@ class SalesforceBulk(object):
                                   concurrency=concurrency,
                                   external_id_name=external_id_name)
         http = Http()
-        print(self.headers())
-        print()
         resp, content = http.request(self.endpoint + "/job",
                                      "POST",
                                      headers=self.headers(),
                                      body=doc)
-        print()
         self.check_status(resp, content)
 
         tree = ET.fromstring(content)
