@@ -401,6 +401,7 @@
                         on_release: app.go_to_review_screen(root.task_output)
 
 <BatchExecuteView>:
+    field_list: lv_source_fields
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
@@ -432,11 +433,6 @@
                 active:root.task_exec
                 size_hint_x: None
                 width: self.height
-            Button:
-                text: 'Exec'
-                size_hint_x: None
-                width: self.height
-#                on_release: root.on_task_list_click()
             Button:
                 text: 'Save'
                 size_hint_x: None
@@ -501,9 +497,10 @@
                     text: 'Select source file' if root.task_input is None else root.get_task_name_from_file(root.task_input)
                     on_text:root.on_exec_type_text()
                 ListView:
-                    id:lv_tasks_
+                    id:lv_source_fields
                     halign: 'left'
                     text_size: self.size
+                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.refresh_fileds_buttons)
                 Label:
                     text: 'Output file:'
                     size_hint_y: None
@@ -537,6 +534,10 @@
                         multiline: False
                         text:'200'
                         on_text:root.load_data(ti_text_input_source_file_name.text)
+                StackLayout:
+                    id:st_layout
+                    #size_hint_x: None
+                    size_hint_y: 0.4
                 TextInput:
                     id:ti_source_preview
                     multiline: True
@@ -594,13 +595,13 @@
             width: self.height * 3
             on_active: app.on_skip_task(self, self.active, root.task_index)
             active:root.task_exec
-        Button:
-            text: 'Execute'
-            size_hint_x: None
-            background_color: (0,0.5,0,1) if self.state == 'normal' else (0,1,0,1)
-            background_normal: ""
-            width: self.height * 2
-            on_release: app.exec_task(root.task_index)
+#        Button:
+#            text: 'Execute'
+#            size_hint_x: None
+#            background_color: (0,0.5,0,1) if self.state == 'normal' else (0,1,0,1)
+#            background_normal: ""
+#            width: self.height * 2
+#            on_release: app.exec_task(root.task_index)
         Button:
             text: 'Up'
             size_hint_x: None
