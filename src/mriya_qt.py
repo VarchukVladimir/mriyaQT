@@ -233,19 +233,35 @@ class Tasks(Screen):
     def args_converter(self, row_index, item):
         # if item is SF_Execute type it may have command key
         if 'command' in item.keys():
-            return {
-                'task_index': row_index,
-                'task_content': item['content'],
-                'task_title': item['title'],
-                'task_sql':item['sql'],
-                'task_type':item['type'],
-                'task_command':item['command'],
-                'task_input':item['input'],
-                'task_output':item['output'],
-                'task_source':item['source'],
-                'task_exec':item['exec'],
-                'task_status':item['status']
-            }
+            if 'task_external_id_name' in item.keys():
+                return {
+                    'task_index': row_index,
+                    'task_content': item['content'],
+                    'task_title': item['title'],
+                    'task_sql':item['sql'],
+                    'task_type':item['type'],
+                    'task_command':item['command'],
+                    'task_input':item['input'],
+                    'task_external_id_name':item['external_id_name'],
+                    'task_output':item['output'],
+                    'task_source':item['source'],
+                    'task_exec':item['exec'],
+                    'task_status':item['status']
+                }
+            else:
+                return {
+                    'task_index': row_index,
+                    'task_content': item['content'],
+                    'task_title': item['title'],
+                    'task_sql':item['sql'],
+                    'task_type':item['type'],
+                    'task_command':item['command'],
+                    'task_input':item['input'],
+                    'task_output':item['output'],
+                    'task_source':item['source'],
+                    'task_exec':item['exec'],
+                    'task_status':item['status']
+                }
         else:
             return {
                 'task_index': row_index,
@@ -345,6 +361,7 @@ class TaskApp(App):
                 task_output=task.get('output'),
                 task_source=task.get('source'),
                 task_exec=task.get('exec'),
+                task_external_id_name=task.get('exteranl_id_name'),
                 sources_list = SourceList,
                 preview_text = '',
                 project=self.project
@@ -464,28 +481,36 @@ class TaskApp(App):
                     cmd_exec = [{
                     'execute':{'input_data':task_item['input'],
                                'connector':connection_dict[task_item['source']],
-                               'object':'Account',
+                               'object':task_item['sql'],
                                'command':task_item['command'],
                                'tag':None,
                                'output_data':task_item['output'],
                                'message':''
                                }
                     }]
+                    print(cmd_exec)
                 self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
                 print(cmd_exec)
+                import threading
                 with Capturing() as output:
-                    try:
-                        wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
-                        wf_task.execute_workflow()
-                    except:
-                        print "Unexpected error:", sys.exc_info()
+                    threading.Thread(self.run_task__(cmd_exec)).start()
                 for line in output:
                     if not line.startswith('Wait for job done'):
                         self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
                 task_item['status'] = 'idle'
                 task_item['title'] = save_title
                 self.refresh_tasks()
-                # self.tasks.ids.lv_tasks._trigger_reset_populate()
+    def run_task__(self, cmd_exec):
+        print('run in thread')
+        f = open('test.txt', 'w')
+        f.write('12312')
+        f.close()
+        try:
+            wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
+            wf_task.execute_workflow()
+        except:
+            print "Unexpected error:", sys.exc_info()
+            # self.tasks.ids.lv_tasks._trigger_reset_populate()
 #
 
 if __name__ == '__main__':
