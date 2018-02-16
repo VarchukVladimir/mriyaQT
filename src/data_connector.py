@@ -412,9 +412,9 @@ class RESTConnector:
 
 
     def _get_soql_template(self, soql):
-        print(sqlparse.parse(soql))
-        print(sqlparse.split(soql))
-        print(sqlparse.format(soql))
+        # print(sqlparse.parse(soql))
+        # print(sqlparse.split(soql))
+        # print(sqlparse.format(soql))
         stmt = sqlparse.parse(soql)[0]
         soql_template = ''
         find_where =  False
