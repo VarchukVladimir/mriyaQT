@@ -29,7 +29,7 @@ class BatchExecuteView(Screen):
     selected_objects = ObjectProperty()
     preview_text = StringProperty()
     preview_source_file_name = StringProperty()
-
+    # exteranl_id_name
 
     objects_list = ListProperty()
     sources_list = ListProperty()
@@ -41,7 +41,6 @@ class BatchExecuteView(Screen):
 
     def __init__(self, **kwargs):
         super(BatchExecuteView, self).__init__(**kwargs)
-        # self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
         self.project = kwargs['project']
         self.previous_sobjcet = self.task_input
         self.previous_source = self.task_source
@@ -73,55 +72,6 @@ class BatchExecuteView(Screen):
 
     def refresh_input_task_buttons(self, refresh_source=None):
         pass
-        # self.ids.st_layout.clear_widgets()
-        # if self.selection:
-        #     for field_item in self.selection:
-        #         layout_size = self.ids.st_layout.size
-        #         text_widht = len(field_item) * 9 + 20
-#                 self.ids.st_layout.add_widget(Builder.load_string('''
-# Button:
-#     id: btn_{sql_item_lower}
-#     text: '{sql_item}'
-#     font_name:'Courier'
-#     size_hint_y: None
-#     size_hint: {x}, .15
-#     on_release:root.parent.parent.parent.parent.parent.on_release_input_task_button(self.text)
-# '''.format(sql_item_lower=field_item, sql_item=field_item, x=(text_widht/layout_size[0]))))
-        # input_paths = []
-        # selection_keys_lower = [p.basename(selection_item) for selection_item in self.selection.keys()]
-        # for workflow_item in self.project.project['workflow']:
-        #     if workflow_item['title'].lower() in selection_keys_lower:
-        #         input_paths.append(workflow_item['output'])
-        # print(input_paths)
-        # if not refresh_source:
-        #     self.ids.ti_input_objects.text = ', '.join([ selection_values[0] for selection_values in self.selection.values()])
-
-    def on_task_list_click(self, d):
-        if self.task_list.adapter.selection:
-            if 'ctrl' in self.parent.parent.parent.parent.parent.modifiers:
-                if self.task_list.adapter.selection[0].text.lower() not in self.selection.keys():
-                    selection_values = []
-                    for workflow_item in self.project.project['workflow']:
-                        if workflow_item['title'].lower() == self.task_list.adapter.selection[0].text.lower():
-                            selection_values.append(workflow_item['output'])
-                            selection_values.append(workflow_item['output'].lower())
-                            break
-                    self.selection[self.task_list.adapter.selection[0].text.lower()] = selection_values
-            self.refresh_input_task_buttons()
-            fields_selected_task = []
-            for tasks in self.project.project['workflow']:
-                if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
-                    fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
-                if tasks['type'] == 'SQL_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
-                    fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
-
-            self.field_list.adapter.data = fields_selected_task
-            self.field_list.adapter.bind(on_selection_change=self.on_field_list_click_item)
-            if 'ctrl' in self.parent.parent.parent.parent.parent.modifiers:
-                cr, cl = self.ids.ti_sql.cursor
-                insert_text = 'SELECT  FROM {table_name}'.format(table_name=self.task_list.adapter.selection[0].text)
-                self.ids.ti_sql.insert_text( insert_text )
-                self.ids.ti_sql.cursor = (cr + 7, cl)
 
     def on_task_name_change(self, task_names):
         task_names_list = []
@@ -148,9 +98,27 @@ class BatchExecuteView(Screen):
         del self.selection[text.lower()]
         self.refresh_input_task_buttons()
 
-    def on_field_list_click_item(self, d):
-        if self.field_list.adapter.selection:
-            self.ids.ti_sql.insert_text(self.field_list.adapter.selection[0].text + ',')
+    # def on_source_field_list_click_item(self, d):
+    #     pass
+    #     # if self.field_list.adapter.selection:
+    #     #     self.ids.ti_sql.insert_text(self.field_list.adapter.selection[0].text + ',')
+
+    def refresh_fileds_buttons(self, d):
+            self.ids.st_layout.clear_widgets()
+            if self.selection:
+                for field_item in self.selection.values():
+                    layout_size = self.ids.st_layout.size
+                    text_widht = len(field_item) * 9 + 20
+
+                    self.ids.st_layout.add_widget(Builder.load_string('''
+    Button:
+        id: btn_{sql_item_lower}
+        text: '{sql_item}'
+        font_name:'Courier'
+        size_hint_y: None
+        size_hint: {x}, .15
+        on_release:root.parent.parent.parent.parent.parent.on_release_field_button(self.text)
+    '''.format(sql_item_lower=field_item.lower(), sql_item=field_item, x=(text_widht / layout_size[0]))))
 
     def on_exec_type_text(self):
         for task in self.project.project['workflow']:
@@ -161,6 +129,9 @@ class BatchExecuteView(Screen):
                 self.load_data(task['output'])
                 self.preview_source_file_name = task['output']
                 self.ids.ti_text_input_source_file_name.test = task['output']
+                self.field_list.adapter.data = self.project._get_fields_from_csv(task['output'])
+                self.field_list.adapter.bind(on_selection_change=self.refresh_fileds_buttons)
+
 
 
 
