@@ -27,7 +27,9 @@ class SQLView(Screen):
         self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
         self.project = kwargs['project']
         input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
-        if self.task_input=='':
+        print('print input task')
+        print(self.task_input)
+        if self.task_input=='' or self.task_input is None:
             self.selection = {}
         else:
             self.selection = {p.basename(input_task_item.lower()).split('.')[0]:[input_task_item, input_task_item.lower()] for input_task_item in input_task}
@@ -134,7 +136,7 @@ Button:
         self.ids.ti_task_output.text = ''
 
     def on_release_input_task_button(self, text):
-        del self.selection[text.lower()]
+        # del self.selection[text.lower()]
         self.refresh_input_task_buttons()
 
     def on_field_list_click_item(self, d):

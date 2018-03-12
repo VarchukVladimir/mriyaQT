@@ -26,10 +26,11 @@ class BatchExecuteView(Screen):
     task_list = ListProperty ()
     task_filed_list = ObjectProperty ()
     task_ouputs_dict = DictProperty()
+    task_external_id_name = StringProperty()
     selected_objects = ObjectProperty()
     preview_text = StringProperty()
     preview_source_file_name = StringProperty()
-    # exteranl_id_name
+
 
     objects_list = ListProperty()
     sources_list = ListProperty()
@@ -40,25 +41,28 @@ class BatchExecuteView(Screen):
 
 
     def __init__(self, **kwargs):
-        super(BatchExecuteView, self).__init__(**kwargs)
+        print('create object ')
+        print(self.task_external_id_name)
         self.project = kwargs['project']
-        self.previous_sobjcet = self.task_input
+        super(BatchExecuteView, self).__init__(**kwargs)
+        # self.previous_sobjcet = self.task_input
         self.previous_source = self.task_source
 
-        input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
-        if self.task_input=='':
-            self.selection = {}
-        else:
-            self.selection = {p.basename(input_task_item.lower()).split('.')[0]:[input_task_item, input_task_item.lower()] for input_task_item in input_task}
-        print(self.selection)
+        # input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
+        # if self.task_input=='':
+        #     self.selection = {}
+        # else:
+        #     self.selection = {p.basename(input_task_item.lower()).split('.')[0]:[input_task_item, input_task_item.lower()] for input_task_item in input_task}
+        # print(self.selection)
         self.objects_list = self.project.get_standart_sobjects(self.task_source)
         # self.source_object_field_list = { field_item.lower():field_item for field_item in self.project.get_sobject_fileds(self.task_source, self.task_input)}
 
-        if self.selection:
-            self.refresh_input_task_buttons()
+        # if self.selection:
+        #     self.refresh_input_task_buttons()
 
     def on_text_input_objects(self):
         save_inputs = self.ids.ti_input_objects.text
+
         inputs_list = save_inputs.split(',')
         new_selection = {}
         for input_task_item in inputs_list:
@@ -68,6 +72,9 @@ class BatchExecuteView(Screen):
         self.selection = new_selection
         print(self.selection)
         self.refresh_input_task_buttons(refresh_source='TextInput')
+
+    def get_csv_fields(self, file_name):
+        return self.project._get_fields_from_csv(file_name)
 
 
     def refresh_input_task_buttons(self, refresh_source=None):
@@ -95,8 +102,10 @@ class BatchExecuteView(Screen):
         self.ids.ti_task_output.text = ''
 
     def on_release_input_task_button(self, text):
-        del self.selection[text.lower()]
-        self.refresh_input_task_buttons()
+        pass
+
+        # del self.selection[text.lower()]
+        # self.refresh_input_task_buttons()
 
     # def on_source_field_list_click_item(self, d):
     #     pass
@@ -105,6 +114,8 @@ class BatchExecuteView(Screen):
 
     def refresh_fileds_buttons(self, d):
             self.ids.st_layout.clear_widgets()
+            print('selection is')
+            print(self.selection)
             if self.selection:
                 for field_item in self.selection.values():
                     layout_size = self.ids.st_layout.size
@@ -128,9 +139,14 @@ class BatchExecuteView(Screen):
                 print(task['output'])
                 self.load_data(task['output'])
                 self.preview_source_file_name = task['output']
-                self.ids.ti_text_input_source_file_name.test = task['output']
-                self.field_list.adapter.data = self.project._get_fields_from_csv(task['output'])
-                self.field_list.adapter.bind(on_selection_change=self.refresh_fileds_buttons)
+                self.ids.ti_text_input_source_file_name.text = task['output']
+                if self.ids.ce_exec_type.text == 'insert':
+                    self.ids.ce_external_id_name.options = [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(self.project._get_fields_from_csv(task['output']))]
+                else:
+                    self.ids.ce_external_id_name.text = 'Id'
+
+                #self.field_list.adapter.data = self.project._get_fields_from_csv(task['output'])
+                #self.field_list.adapter.bind(on_selection_change=self.refresh_fileds_buttons)
 
 
 

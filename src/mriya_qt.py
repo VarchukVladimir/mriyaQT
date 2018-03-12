@@ -38,7 +38,7 @@ from start_screen import StartScreen
 from review_screen import ReviewScreen
 from sf_execute_view import BatchExecuteView
 from project_utils import Capturing
-
+from sys import argv
 
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 # default_project_dir = p.join(getcwd(), 'projects', 'test_exec', 'test_exec.mpr')
@@ -58,8 +58,8 @@ StandartObjectList_uppercase = [ object_item.upper() for object_item in Standart
 
 ObjectsList = []
 
-config_file = p.join("config.ini")
-
+config_file = argv[1] if len(argv) >= 2 else p.join('config.ini')
+print(len(argv))
 sf_object = None
 sf_source = None
 
@@ -106,6 +106,13 @@ class Project():
 
     def save(self):
         json.dump(self.project, open(self.project_file_name, 'w'))
+        if p.exists(self.project_file_name):
+            recent_projetcs_file = 'recent_projects.ini'
+            projects = open(recent_projetcs_file).read().splitlines()
+            if self.project_file_name not in projects:
+                with open(recent_projetcs_file, 'a') as f:
+                    f.writelines('\n' + self.project_file_name)
+
 
     def get_sobjects(self, connection, force_refresh = False):
         if connection not in SourceList:
@@ -144,29 +151,31 @@ class Project():
         res = None
         soql_upper = soql
         try:
-            res = re.search('FROM(.*?)WHERE', soql_upper, re.IGNORECASE).group(1).strip()
+            res = re.search(' FROM(.*?) WHERE', soql_upper, re.IGNORECASE).group(1).strip()
         except:
             try:
-                res = re.search('FROM(.*?)LIMIT', soql_upper, re.IGNORECASE).group(1).strip()
+                res = re.search(' FROM(.*?) LIMIT', soql_upper, re.IGNORECASE).group(1).strip()
             except:
                 try:
-                    res = re.search('FROM(.*?)GROUP', soql_upper,
+                    res = re.search(' FROM(.*?) GROUP', soql_upper,
                                     re.IGNORECASE).group(1).strip()
                 except:
                     try:
-                        res = re.search('FROM(.*?)ORDER', soql_upper,
+                        res = re.search(' FROM(.*?) ORDER', soql_upper,
                                         re.IGNORECASE).group(1).strip()
                     except:
-                        res = soql[soql_upper.find('FROM') + 5:].strip()
+                        res = soql[soql_upper.find(' FROM ') + 6:].strip()
         return res
 
     def get_sql_after_from(self, soql):
         soql_upper = soql.upper()
-        after_from = soql[soql_upper.find('FROM'):].strip().split(' ')
+        after_from = soql[soql_upper.find(' FROM '):].strip().split(' ')
         res = ' '.join(after_from[2:])
         return res
 
     def get_fields_from_sql(self, sql):
+        # re_search = re.search('SELECT(.*?)FROM', sql, re.IGNORECASE).group(1)
+        # if re_search:
         re_res = re.search('SELECT(.*?)FROM', sql, re.IGNORECASE).group(1)
         sql_fields = None
         if re_res:
@@ -231,9 +240,13 @@ class TaskListItem(BoxLayout):
 class Tasks(Screen):
     data = ListProperty()
     def args_converter(self, row_index, item):
+        print('printing item')
+        print(item)
         # if item is SF_Execute type it may have command key
         if 'command' in item.keys():
             if 'task_external_id_name' in item.keys():
+                print('run with external')
+                print(item)
                 return {
                     'task_index': row_index,
                     'task_content': item['content'],
@@ -249,6 +262,7 @@ class Tasks(Screen):
                     'task_status':item['status']
                 }
             else:
+                print('run ')
                 return {
                     'task_index': row_index,
                     'task_content': item['content'],
@@ -263,6 +277,7 @@ class Tasks(Screen):
                     'task_status':item['status']
                 }
         else:
+            print('run last')
             return {
                 'task_index': row_index,
                 'task_content': item['content'],
@@ -349,6 +364,7 @@ class TaskApp(App):
             view.task_list.adapter.data = [task_name['title'] for task_name in self.tasks.data[:task_index]]
             view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
         elif task.get('type') == 'SF_Execute':
+            print('execute type')
             view = BatchExecuteView(
                 name=name,
                 task_index=task_index,
@@ -361,7 +377,7 @@ class TaskApp(App):
                 task_output=task.get('output'),
                 task_source=task.get('source'),
                 task_exec=task.get('exec'),
-                task_external_id_name=task.get('exteranl_id_name'),
+                task_external_id_name=task.get('external_id_name'),
                 sources_list = SourceList,
                 preview_text = '',
                 project=self.project
@@ -382,7 +398,7 @@ class TaskApp(App):
         if task_names_index:
             max_index = int(max(task_names_index)[len(projectname):]) + 1
         new_title_name = '{0}{1:02d}'.format(projectname, max_index)
-        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':' ', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle', 'command':'update'})
+        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':' ', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle','external_id_name':'Id', 'command':'update'})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
 
@@ -422,6 +438,12 @@ class TaskApp(App):
         self.tasks.data[task_index]['exec'] = value
 
     def go_to_project(self, prject_file):
+        if p.exists(prject_file):
+            recent_projetcs_file = 'recent_projects.ini'
+            projects = open(recent_projetcs_file).read().splitlines()
+            if prject_file not in projects:
+                with open(recent_projetcs_file, 'a') as f:
+                    f.writelines('\n' + prject_file)
         self.project = Project(prject_file)
         self.tasks = Tasks(name='tasks')
         self.load_tasks()
@@ -467,7 +489,7 @@ class TaskApp(App):
                     cmd_exec = [{
                     'execute':{'input_data':task_item['sql'],
                                'connector':connection_dict[task_item['source']],
-                               'object':self.project.get_object_from_sql(task_item['sql']),
+                               'object':self.project.get_object_from_sql(task_item['sql']).strip(),
                                'command':'query',
                                'tag':None,
                                'output_data':task_item['output'],
@@ -477,12 +499,13 @@ class TaskApp(App):
                 elif task_item['type'] == 'SF_Execute':
                     # print(connection_dict)
                  # {'sql':'', 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text}
-
+                    print('!!!!!!!!!!!input_data', task_item['input'])
                     cmd_exec = [{
-                    'execute':{'input_data':task_item['input'],
+                    'execute':{'input_data':task_item['input'].strip(),
                                'connector':connection_dict[task_item['source']],
                                'object':task_item['sql'],
                                'command':task_item['command'],
+                               'exteranl_id_name':[task_item['external_id_name']],
                                'tag':None,
                                'output_data':task_item['output'],
                                'message':''

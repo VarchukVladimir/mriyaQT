@@ -33,10 +33,11 @@ class TaskView(Screen):
         self.previous_source = self.task_source
         self.source_object_field_list = {}
         self.selection = {}
+        self.pressed_filed_list_button = ''
+        self.set_not_to_refresh = True
         self.objects_list = self.project.get_standart_sobjects(self.task_source)
         if self.task_source in self.sources_list and self.task_input in self.project.get_sobjects(self.task_source):
             self.source_object_field_list = { field_item.lower():field_item for field_item in self.project.get_sobject_fileds(self.task_source, self.task_input)}
-            print('**********')
             self.object_fileds.adapter.data = self.project.get_sobject_fileds(self.task_source, self.task_input)
             self.on_sql_texinput_change()
             self.refresh_fileds_buttons()
@@ -114,11 +115,21 @@ class TaskView(Screen):
                     self.object_fileds.adapter.data.append(field_item)
             self.object_fileds.adapter.bind(on_selection_change=self.on_select_object_fileds_list)
 
+    def on_press_field_button(self, text):
+        if not self.set_not_to_refresh:
+            self.pressed_filed_list_button = text.lower()
+        else:
+            self.set_not_to_refresh = False
+            self.pressed_filed_list_button = ''
+
     def on_release_field_button(self, text):
-        del self.selection[text.lower()]
-        self.refresh_fileds_buttons()
-        self.get_sql_string()
-        print(text)
+        pass
+        # if text.lower() == self.pressed_filed_list_button:
+        #     print('deleting {}'.format(text))
+        #     # del self.selection[text.lower()]
+        #     self.refresh_fileds_buttons()
+        #     self.get_sql_string()
+        # self.pressed_filed_list_button = ''
 
     def refresh_fileds_buttons(self):
         self.ids.st_layout.clear_widgets()
@@ -135,17 +146,25 @@ Button:
     size_hint_y: None
     size_hint: {x}, .15
     on_release:root.parent.parent.parent.parent.parent.on_release_field_button(self.text)
+    on_press:root.parent.parent.parent.parent.parent.on_press_field_button(self.text)
 '''.format(sql_item_lower=field_item.lower(), sql_item=field_item, x=(text_widht/layout_size[0]))))
+        self.set_not_to_refresh = True
+        self.pressed_filed_list_button = ''
+
 
 
     def on_sql_texinput_change(self):
-        print(self.ids.ti_sql.text)
+        # print(self.ids.ti_sql.text)
+        self.set_not_to_refresh = True
+        self.pressed_filed_list_button = ''
         # if self.previous_sobjcet.lower() <> self.project.get_object_from_sql(self.ids.ti_sql.text).lower():
         sql_fields = self.project.get_fields_from_sql(self.ids.ti_sql.text)
         if sql_fields:
             self.selection = {}
             for sql_item in sql_fields:
                 if sql_item.lower() in self.source_object_field_list.keys() and sql_item.lower() not in self.selection.keys():
-                    print('found item {} {}'.format(sql_item, self.source_object_field_list[sql_item.lower()]))
+                    # print('found item {} {}'.format(sql_item, self.source_object_field_list[sql_item.lower()]))
                     self.selection[sql_item.lower()] = self.source_object_field_list[sql_item.lower()]
+                else:
+                    self.selection[sql_item.lower()] = sql_item
         self.refresh_fileds_buttons()

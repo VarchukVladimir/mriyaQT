@@ -75,7 +75,12 @@
             size_hint_y: None
             height: 45
             on_release: root.show_save()
-        Widget:
+#        Widget:
+        BoxLayout:
+            orientation: 'vertical'
+            StackLayout:
+                id:st_layout
+
 
 <ReviewScreen>:
     BoxLayout:
@@ -401,7 +406,7 @@
                         on_release: app.go_to_review_screen(root.task_output)
 
 <BatchExecuteView>:
-    field_list: lv_source_fields
+    #field_list: lv_source_fields
     BoxLayout:
         orientation: 'vertical'
         BoxLayout:
@@ -437,7 +442,7 @@
                 text: 'Save'
                 size_hint_x: None
                 width: self.height
-                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text})
+                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text, 'external_id_name':ce_external_id_name.text})
             Button:
                 text: 'X'
                 size_hint_x: None
@@ -496,11 +501,26 @@
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.task_list]
                     text: 'Select source file' if root.task_input is None else root.get_task_name_from_file(root.task_input)
                     on_text:root.on_exec_type_text()
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'External fied:'
+                ComboEdit:
+                    id:ce_external_id_name
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(root.get_csv_fields(root.task_input))]
+                    text: 'Select external field' if root.task_external_id_name is None else root.task_external_id_name
+#                   on_text:root.on_exec_type_text()
+#                ListView:
+#                    id:lv_source_fields
+#                    halign: 'left'
+#                    text_size: self.size
+#                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.refresh_fileds_buttons)
                 ListView:
-                    id:lv_source_fields
+                    id:dummy
                     halign: 'left'
-                    text_size: self.size
-                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.refresh_fileds_buttons)
                 Label:
                     text: 'Output file:'
                     size_hint_y: None
@@ -524,7 +544,9 @@
                         height: 35
                         size_hint_y: None
                         multiline: False
-                        text:root.preview_source_file_name
+#                        text:root.preview_source_file_name
+                        text:root.task_input
+                        on_text:root.load_data(self.text)
                     TextInput:
                         id: ti_lines
                         size_hint_x: None
@@ -533,7 +555,6 @@
                         width: 50
                         multiline: False
                         text:'200'
-                        on_text:root.load_data(ti_text_input_source_file_name.text)
                 StackLayout:
                     id:st_layout
                     #size_hint_x: None
