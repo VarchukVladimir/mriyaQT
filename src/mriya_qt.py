@@ -151,17 +151,17 @@ class Project():
         res = None
         soql_upper = soql
         try:
-            res = re.search(' FROM (.*?) WHERE', soql_upper, re.IGNORECASE).group(1).strip()
+            res = re.search(' FROM (.*?) WHERE ', soql_upper, re.IGNORECASE).group(1).strip()
         except:
             try:
-                res = re.search(' FROM (.*?) LIMIT', soql_upper, re.IGNORECASE).group(1).strip()
+                res = re.search(' FROM (.*?) LIMIT ', soql_upper, re.IGNORECASE).group(1).strip()
             except:
                 try:
-                    res = re.search(' FROM (.*?) GROUP', soql_upper,
+                    res = re.search(' FROM (.*?) GROUP ', soql_upper,
                                     re.IGNORECASE).group(1).strip()
                 except:
                     try:
-                        res = re.search(' FROM (.*?) ORDER', soql_upper,
+                        res = re.search(' FROM (.*?) ORDER ', soql_upper,
                                         re.IGNORECASE).group(1).strip()
                     except:
                         res = soql[soql_upper.find(' FROM ') + 6:].strip()
@@ -304,6 +304,7 @@ class TaskApp(App):
         self.transition = SlideTransition(duration=.35)
         root = ScreenManager(transition=self.transition)
         root.add_widget(self.start_screen)
+        self.title = '[{0}]'.format(config_file)
         return root
 
     def on_release_field_button(self, text):
@@ -437,19 +438,20 @@ class TaskApp(App):
     def on_skip_task(self, instance, value, task_index):
         self.tasks.data[task_index]['exec'] = value
 
-    def go_to_project(self, prject_file):
-        if p.exists(prject_file):
+    def go_to_project(self, project_file):
+        if p.exists(project_file):
             recent_projetcs_file = 'recent_projects.ini'
             projects = open(recent_projetcs_file).read().splitlines()
-            if prject_file not in projects:
+            if project_file not in projects:
                 with open(recent_projetcs_file, 'a') as f:
-                    f.writelines('\n' + prject_file)
-        self.project = Project(prject_file)
+                    f.writelines('\n' + project_file)
+        self.project = Project(project_file)
         self.tasks = Tasks(name='tasks')
         self.load_tasks()
         self.root.add_widget(self.tasks)
         self.transition.direction = 'left'
         self.root.current = self.tasks.name
+        self.title = 'MriyaQT - {0} :: [{1}]'.format(p.basename(project_file).split('.')[0], config_file)
 
     def go_to_review_screen(self, output_path):
         review_screen = ReviewScreen(name=p.basename(output_path), file_name=output_path, previous_screen=self.root.current)

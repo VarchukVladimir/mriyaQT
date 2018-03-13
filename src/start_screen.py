@@ -44,7 +44,7 @@ class StartScreen(Screen):
 Button:
     text: '{project_file_name}'
     size_hint_y: None
-    height: 40
+    height: 30
     on_release: app.go_to_project(self.text)
     '''.format(project_file_name=project_file)))
         # on_release: root.go_to_project(self.text)
