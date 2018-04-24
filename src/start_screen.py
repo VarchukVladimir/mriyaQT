@@ -6,6 +6,7 @@ from kivy.app import Builder
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from os import path as p
+import json
 
 recent_projetcs_file = 'recent_projects.ini'
 
@@ -25,14 +26,15 @@ class StartScreen(Screen):
     loadfile = ObjectProperty(None)
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
-    project_list = ListProperty(None)
+    # project_list = ListProperty(None)
 
     # def __init__(self):
     def __init__(self, **kwargs):
         super(Screen, self).__init__(**kwargs)
         if p.exists(recent_projetcs_file):
             with open(recent_projetcs_file) as f:
-                self.project_files = f.read().splitlines()
+                recent_projects = f.read().splitlines()
+                self.project_files = recent_projects [:10] + list(reversed(recent_projects[10:]))
         else:
             self.project_files = []
         if len(self.project_files) > 0:
@@ -74,16 +76,12 @@ Button:
         self._popup.open()
 
     def load(self, path, filename):
-        print(path)
-        print(filename)
         # self.text_input = str(filename)
         self.ids.text_input.text = str(filename[0])
         print('load project {}'.format(self.ids.text_input.text))
         self.dismiss_popup()
 
     def save(self, path, filename):
-        print(path)
-        print(str(filename))
         # self.text_input = filename
         self.ids.text_input.text = p.join(str(path), str(filename))
         print('save project {}'.format(self.ids.text_input.text))
