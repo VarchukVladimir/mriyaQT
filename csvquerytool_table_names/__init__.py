@@ -6,6 +6,8 @@ import os
 import sqlite3
 import sys
 
+csv.field_size_limit(sys.maxsize)
+
 _logger = logging.getLogger(__file__)
 
 AUTO_RENAME_DUPLICATE_COLUMN_NAMES = True
