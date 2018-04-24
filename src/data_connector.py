@@ -64,7 +64,7 @@ class SalesforceBulkExtended(SalesforceBulk):
 
     def __init__(self, **kwargs):
         super(SalesforceBulkExtended,self).__init__(**kwargs)
-        self.restendpoint = self.endpoint[:self.endpoint.find('/services/async/')] + '/services/data/v39.0/'
+        self.restendpoint = self.endpoint[:self.endpoint.find('/services/async/')] + '/services/data/v42.0/'
 
 
     def rest_request(self, url_reuqest=''):
@@ -325,7 +325,7 @@ class DictAdapter:
 
 
 class RESTConnector:
-    def __init__(self, connector_param, batch_size=5000):
+    def __init__(self, connector_param, batch_size=10000):
         self.connector_param = connector_param
         self.instance_url = 'https://' + connector_param.url_prefix + 'salesforce.com'
         self.token_url = 'https://' + connector_param.url_prefix + 'salesforce.com/services/oauth2/token'
@@ -335,7 +335,7 @@ class RESTConnector:
             self.num_threads = connector_param.threads
         else:
             self.num_threads = 0
-        self.bulk = SalesforceBulkExtended(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='38.0')
+        self.bulk = SalesforceBulkExtended(sessionId=self.access_token, host=urlparse(self.instance_url).hostname, API_version='42.0')
         self.batch_size = batch_size
 
 
@@ -508,6 +508,7 @@ class RESTConnector:
         """
         :rtype : executing query and save result in csv or json file
         """
+        print(object)
         print('run job {}'.format(soql))
         try:
             job = self.bulk.create_query_job(object)
