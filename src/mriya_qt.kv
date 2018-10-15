@@ -600,7 +600,7 @@
             width: self.height * 1.5
             background_color: (0.5,0,0,1) if self.state == 'normal' else (0,1,0,1)
             background_normal: ""
-            on_release: app.del_task(root.task_index)
+            on_release: app.call_del_task(root.task_index)
         Label:
             id:label_task_name
             canvas.before:

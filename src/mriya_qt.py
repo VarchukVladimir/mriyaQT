@@ -18,7 +18,7 @@ import json
 import re
 import sys
 from os import path as p
-from os import mkdir, getcwd
+from os import mkdir
 
 from kivy.app import App, Builder
 from kivy.uix.screenmanager import ScreenManager, Screen, SlideTransition
@@ -27,7 +27,7 @@ from kivy.properties import ListProperty, StringProperty, \
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
-
+from kivy.uix.popup import Popup
 from data_connector import RESTConnector, SFBeatboxConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
@@ -41,7 +41,6 @@ from project_utils import Capturing
 from sys import argv
 
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
-# default_project_dir = p.join(getcwd(), 'projects', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
 Builder.load_file('mriya_qt.kv')
 
@@ -318,11 +317,37 @@ class TaskApp(App):
         self.project.project['workflow'] = self.tasks.data
         self.project.save()
 
-    def del_task(self, task_index):
-        del self.tasks.data[task_index]
-        self.save_tasks()
-        self.refresh_tasks()
-        self.go_tasks(task_index)
+    def call_del_task(self, task_index):
+        content_str = '''
+BoxLayout:
+    orientation:'vertical'
+    Label:
+        text: "Are you sure you want to delete {task_name}?"
+    BoxLayout:
+        orientation:'horizontal'
+        Button:
+            text: "Yes"
+            on_release: app.detete_task (int({task_index}), 'Yes')
+        Button:
+            text: "No"
+            on_release: app.detete_task (int({task_index}), 'No')
+        '''.format(task_name=self.tasks.data[task_index]['title'], task_index=task_index)
+        self.popup = Popup(title='Delete task',
+                      content=Builder.load_string(content_str),
+                      size_hint=(None, None), size=(400, 150),
+                      auto_dismiss=False)
+        self.popup.open()
+
+    def detete_task(self,task_index, answer):
+        self.popup.dismiss()
+        if answer == 'Yes':
+            del self.tasks.data[task_index]
+            self.save_tasks()
+            self.refresh_tasks()
+            self.go_tasks(task_index)
+        else:
+            print('task {0} was not removed'.format(task_index))
+
 
     def edit_task(self, task_index):
         task = self.tasks.data[task_index]
