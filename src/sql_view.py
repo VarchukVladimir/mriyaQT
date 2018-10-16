@@ -27,13 +27,10 @@ class SQLView(Screen):
         self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
         self.project = kwargs['project']
         input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
-        print('print input task')
-        print(self.task_input)
         if self.task_input=='' or self.task_input is None:
             self.selection = {}
         else:
             self.selection = {p.basename(input_task_item.lower()).split('.')[0]:[input_task_item, input_task_item.lower()] for input_task_item in input_task}
-        print(self.selection)
         if self.selection:
             self.refresh_input_task_buttons()
         Window.bind(on_key_down=self.key_callback)
@@ -60,7 +57,6 @@ class SQLView(Screen):
                 if p.basename(input_task_item.lower()).split('.')[1] == 'csv':
                     new_selection[p.basename(input_task_item.lower()).split('.')[0]] = [input_task_item, input_task_item.lower()]
         self.selection = new_selection
-        print(self.selection)
         self.refresh_input_task_buttons(refresh_source='TextInput')
 
 
@@ -80,11 +76,16 @@ Button:
     on_release:root.parent.parent.parent.parent.parent.on_release_input_task_button(self.text)
 '''.format(sql_item_lower=field_item, sql_item=field_item, x=(text_widht/layout_size[0]))))
         if not refresh_source:
-            self.ids.ti_input_objects.text = ', '.join([ selection_values[0] for selection_values in self.selection.values()])
+            ti_input_objects_list = []
+            for selection_value in self.selection.values():
+                if selection_value[0] == ' ':
+                    continue
+                else:
+                    ti_input_objects_list.append(selection_value)
+            self.ids.ti_input_objects.text = ', '.join([ selection_values[0] for selection_values in ti_input_objects_list])
 
     def on_task_list_click(self, d):
         if self.task_list.adapter.selection:
-            print('modifiers')
             if 'ctrl' in self.local_modifiers:
                 if self.task_list.adapter.selection[0].text.lower() not in self.selection.keys():
                     selection_values = []
@@ -139,7 +140,6 @@ Button:
             insert_str = self.field_list.adapter.selection[0].text
             if '.' in self.field_list.adapter.selection[0].text:
                 insert_str = '[{}]'.format(self.field_list.adapter.selection[0].text)
-            print('modifiers', self.local_modifiers)
             if 'ctrl' in self.local_modifiers:
                 insert_str = insert_str + ','
             self.ids.ti_sql.insert_text(insert_str)
