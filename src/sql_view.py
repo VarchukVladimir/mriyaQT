@@ -37,17 +37,19 @@ class SQLView(Screen):
         if self.selection:
             self.refresh_input_task_buttons()
         Window.bind(on_key_down=self.key_callback)
+        Window.bind(on_key_up=self.key_callback_up)
+        self.local_modifiers = []
+
+    def key_callback_up(self, keyboard, keycode, text):
+        print(keycode)
         self.local_modifiers = []
 
     def key_callback(self, keyboard, keycode, text, modifiers, a):
-        print(a)
-        print(keycode)
         self.local_modifiers = []
         if keycode==308:
             self.local_modifiers.append('alt')
         elif keycode==305:
             self.local_modifiers.append('ctrl')
-
 
     def on_text_input_objects(self):
         save_inputs = self.ids.ti_input_objects.text
@@ -141,6 +143,12 @@ Button:
 
     def on_field_list_click_item(self, d):
         if self.field_list.adapter.selection:
-            self.ids.ti_sql.insert_text(self.field_list.adapter.selection[0].text + ',')
+            insert_str = self.field_list.adapter.selection[0].text
+            if '.' in self.field_list.adapter.selection[0].text:
+                insert_str = '[{}]'.format(self.field_list.adapter.selection[0].text)
+            print('modifiers', self.local_modifiers)
+            if 'ctrl' in self.local_modifiers:
+                insert_str = insert_str + ','
+            self.ids.ti_sql.insert_text(insert_str)
 
 
