@@ -582,7 +582,7 @@
 
 
 <TaskListItem>:
-    height: '48sp'
+    height: '45sp'
     size_hint_y: None
 
     canvas:
@@ -654,36 +654,41 @@
                     pos: self.pos
                     size: self.size
 
-            Image:
-                #source: 'C:\\Python_Projects\\mriyaQT\\icons\\Sql-runner-icon.png'
-                source: '..\\icons\\Sql-runner-icon.png'
-                mipmap: True
-                size_hint_x: None
-                width: self.height
+#            Button:
+#                text: 'Settings'
+#                size_hint_x: None
+#                width: self.height*2
+#                on_release: app.goto_settings()
+
+#            Button:
+#                text: 'Macros'
+#                size_hint_x: None
+#                width: self.height*2
+#                on_release: app.goto_settings()
 
             Label:
                 text: app.project.project_name
                 font_size: '16sp'
 
             Button:
-                text: 'EXEC'
+                text: 'Exec All'
                 size_hint_x: None
-                width: self.height
+                width: self.height * 2
                 on_release: app.exec_workflow()
             Button:
-                text: 'SF'
+                text: 'SF Query'
                 size_hint_x: None
-                width: self.height
+                width: self.height * 2
                 on_release: app.add_task('SF_Query')
             Button:
-                text: 'SQL'
+                text: 'CSV query'
                 size_hint_x: None
-                width: self.height
+                width: self.height * 2
                 on_release: app.add_task('SQL_Query')
             Button:
-                text: 'SF_Exec'
+                text: 'SF Execute'
                 size_hint_x: None
-                width: self.height
+                width: self.height * 2
                 on_release: app.add_task('SF_Execute')
 
         ListView:

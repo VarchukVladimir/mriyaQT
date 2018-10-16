@@ -306,8 +306,8 @@ class TaskApp(App):
         self.title = '[{0}]'.format(config_file)
         return root
 
-    def on_release_field_button(self, text):
-        print(text)
+    # def on_release_field_button(self, text):
+    #     print(text)
 
     def load_tasks(self):
         data = self.project.project['workflow']
@@ -489,6 +489,15 @@ BoxLayout:
     def go_back_to_task(self, previous_screen):
         self.transition.direction = 'right'
         self.root.current = previous_screen
+
+    def goto_settings(self):
+        self.settings_popup = Popup(title='Application settings',
+                           content=Builder.load_string(open('src/settings.kv').read()),
+                           size_hint=(None, None), size=(400, 150),
+                           auto_dismiss=True)
+        self.settings_popup.open()
+
+        pass
 
     def exec_workflow(self):
         connection_dict = {}
