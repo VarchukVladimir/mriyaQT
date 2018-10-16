@@ -79,12 +79,6 @@ Button:
     size_hint: {x}, .15
     on_release:root.parent.parent.parent.parent.parent.on_release_input_task_button(self.text)
 '''.format(sql_item_lower=field_item, sql_item=field_item, x=(text_widht/layout_size[0]))))
-        # input_paths = []
-        # selection_keys_lower = [p.basename(selection_item) for selection_item in self.selection.keys()]
-        # for workflow_item in self.project.project['workflow']:
-        #     if workflow_item['title'].lower() in selection_keys_lower:
-        #         input_paths.append(workflow_item['output'])
-        # print(input_paths)
         if not refresh_source:
             self.ids.ti_input_objects.text = ', '.join([ selection_values[0] for selection_values in self.selection.values()])
 
@@ -117,7 +111,6 @@ Button:
                 self.ids.ti_sql.cursor = (cr + 7, cl)
 
     def on_task_name_change(self, task_names):
-        task_names_list = []
         new_task_name = self.ids.ti_task_name.text
         same_task_name_index = 0
         for i, task_name in enumerate(task_names):
@@ -150,5 +143,3 @@ Button:
             if 'ctrl' in self.local_modifiers:
                 insert_str = insert_str + ','
             self.ids.ti_sql.insert_text(insert_str)
-
-
