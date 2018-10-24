@@ -318,7 +318,7 @@
             TextInput:
                 id:ti_task_name
                 text: root.task_title
-                on_text: root.on_task_title_changed(app.get_task_names())
+                on_text: root.on_task_name_change(app.get_task_names())
             Label:
                 size_hint_x: None
                 width: self.height * 3
@@ -428,7 +428,7 @@
             TextInput:
                 id:ti_task_name
                 text: root.task_title
-                on_text: root.on_task_title_changed(app.get_task_names())
+                on_text: root.on_task_name_change(app.get_task_names())
             Label:
                 size_hint_x: None
                 width: self.height * 3
@@ -505,19 +505,49 @@
                     size_hint_y: None
                     height:'35dp'
                     text_size: self.width, None
-                    text: 'External fied:'
+                    text: 'External field:'
                 ComboEdit:
                     id:ce_external_id_name
                     size_hint_y: None
                     height: '30dp'
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(root.get_csv_fields(root.task_input))]
                     text: 'Select external field' if root.task_external_id_name is None else root.task_external_id_name
-#                   on_text:root.on_exec_type_text()
-#                ListView:
-#                    id:lv_source_fields
-#                    halign: 'left'
-#                    text_size: self.size
-#                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.refresh_fileds_buttons)
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Batch size:'
+                TextInput:
+                    id:ti_batch_size
+                    size_hint_y: None
+                    height: '30dp'
+                    text: '5000'
+                    disabled:True
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Concurrency Mode:'
+                ComboEdit:
+                    id:ce_api
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['Parallel', 'Serial']]
+                    size_hint_y: None
+                    height: '30dp'
+                    text: 'Parallel'
+                    disabled:True
+
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'API:'
+                ComboEdit:
+                    id:ce_api
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['BulkAPI', 'SoAPI']]
+                    size_hint_y: None
+                    height: '30dp'
+                    text: 'BulkAPI'
+                    disabled:True
                 ListView:
                     id:dummy
                     halign: 'left'
@@ -595,19 +625,38 @@
     BoxLayout:
         padding: '5dp'
         Button:
+            id:del_bbutton
             text: 'Del'
             size_hint_x: None
             width: self.height * 1.5
             background_color: (0.5,0,0,1) if self.state == 'normal' else (0,1,0,1)
             background_normal: ""
             on_release: app.call_del_task(root.task_index)
+#        Label:
+#            id:label_task_spacer
+
+#        Label:
+#            id:label_task_info
+#            pos:(del_bbutton.pos[0] + del_bbutton.width, del_bbutton.pos[1])
+#            text_size_x:self.width
+#            halign: 'right'
+#            color:(0.4,0.4,0.6,1) if root.task_type=='SQL_Query' else (0.5,0.5,0.5,1) if root.task_type=='SF_Query' else (0.5,0.5,0.6,1)
+#            size_hint_x: 0.2
+#            canvas.before:
+#                Color:
+#                    rgb: (0.3,0.3,0.5,1) if root.task_type=='SQL_Query' else (0.4,0.4,0.4,1) if root.task_type=='SF_Query' else (0.4,0.4,0.5,1)
+#                Rectangle:
+#                    pos: self.pos
+#                    size: self.width, self.height
+#            text: app.get_record_count(root.task_index)
+
         Label:
             id:label_task_name
             canvas.before:
                 Color:
                     rgb: (0.3,0.3,0.5,1) if root.task_type=='SQL_Query' else (0.4,0.4,0.4,1) if root.task_type=='SF_Query' else (0.4,0.4,0.5,1)
                 Rectangle:
-                    pos: self.pos
+                    pos: (self.pos[0]+1,self.pos[1])
                     size: self.width, self.height
             text: root.task_title
         Switch:
@@ -654,11 +703,11 @@
                     pos: self.pos
                     size: self.size
 
-#            Button:
-#                text: 'Settings'
-#                size_hint_x: None
-#                width: self.height*2
-#                on_release: app.goto_settings()
+            Button:
+                text: 'Settings'
+                size_hint_x: None
+                width: self.height*2
+                on_release: app.goto_settings()
 
 #            Button:
 #                text: 'Macros'
