@@ -28,6 +28,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
+from kivy.uix.settings import SettingsWithSidebar
 from data_connector import RESTConnector, SFBeatboxConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
@@ -39,7 +40,7 @@ from review_screen import ReviewScreen
 from sf_execute_view import BatchExecuteView
 from project_utils import Capturing
 from sys import argv
-
+from datetime import datetime
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
 Builder.load_file('mriya_qt.kv')
@@ -96,6 +97,8 @@ class Project():
         else:
             self.project_file_name = file_name
             self.project = json.load(open(file_name))
+            self.project_timestamp = p.getmtime(self.project_file_name)
+            print(self.project_timestamp)
             self.project_dir = self.project['project_dir']
             self.project_data_dir = self.project['project_data_dir']
             self.project_name = self.project['project_name']
@@ -105,6 +108,7 @@ class Project():
 
     def save(self):
         json.dump(self.project, open(self.project_file_name, 'w'))
+        self.project_timestamp = p.getmtime(self.project_file_name)
         if p.exists(self.project_file_name):
             recent_projetcs_file = 'recent_projects.ini'
             projects = open(recent_projetcs_file).read().splitlines()
@@ -218,7 +222,6 @@ class TaskListItem(BoxLayout):
     task_index = NumericProperty()
     task_sql = StringProperty()
     task_type = StringProperty()
-    # task_command = StringProperty()
     task_input = StringProperty()
     task_output = StringProperty()
     task_source = StringProperty()
@@ -299,6 +302,7 @@ class TaskApp(App):
         self.default_application_dir = default_application_dir
 
     def build(self):
+        self.settings_cls = SettingsWithSidebar
         self.start_screen = StartScreen()
         self.transition = SlideTransition(duration=.35)
         root = ScreenManager(transition=self.transition)
@@ -314,6 +318,34 @@ class TaskApp(App):
         self.tasks.data = data
 
     def save_tasks(self):
+        if p.exists(self.project.project_file_name):
+            if self.project.project_timestamp <> p.getmtime(self.project.project_file_name):
+                content_str = '''
+BoxLayout:
+    orientation:'vertical'
+    Label:
+        halign:'center'
+        text: "Project file was changed by another application.\\nDo you want to apply your current changes anyway?"
+    BoxLayout:
+        orientation:'horizontal'
+        Button:
+            text: "Yes"
+            on_release: app.do_save()
+        Button:
+            text: "No"
+            on_release: app.popup.dismiss()
+            '''.format()
+                self.popup = Popup(title='Delete task',
+                                           content=Builder.load_string(content_str),
+                                           size_hint=(None, None), size=(400, 150),
+                                           auto_dismiss=False)
+                self.popup.open()
+            else:
+                self.do_save()
+
+    def do_save(self):
+        if hasattr(self, 'popup'):
+            self.popup.dismiss()
         self.project.project['workflow'] = self.tasks.data
         self.project.save()
 
@@ -491,13 +523,33 @@ BoxLayout:
         self.root.current = previous_screen
 
     def goto_settings(self):
-        self.settings_popup = Popup(title='Application settings',
-                           content=Builder.load_string(open('src/settings.kv').read()),
-                           size_hint=(None, None), size=(400, 150),
-                           auto_dismiss=True)
-        self.settings_popup.open()
+        self.open_settings()
+        # self.settings_popup = Popup(title='Application settings',
+        #                    content=Builder.load_string(open('src/settings.kv').read()),
+        #                    size_hint=(None, None), size=(400, 150),
+        #                    auto_dismiss=True)
+        # self.settings_popup.open()
 
         pass
+
+    def build_config(self, config):
+        config.setdefaults('mriya', {
+            'batch_size':5000,
+            'concurrency':'Parallel',
+            'api_type':'BulkAPI'})
+
+    def build_settings(self, settings):
+        settings.add_json_panel('Mriya settings',
+                                self.config,
+                                data=open('settings_template.json', 'r').read())
+
+    def get_record_count(self, task_index):
+        print(task_index)
+        tt = ''
+        if p.exists(self.tasks.data[task_index]['output']):
+            tt = datetime.utcfromtimestamp(p.getmtime(self.tasks.data[task_index]['output'])).strftime('%Y-%m-%d %H:%M:%S.%M')
+            print(tt)
+        return str(tt)
 
     def exec_workflow(self):
         connection_dict = {}
