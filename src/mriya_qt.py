@@ -157,14 +157,14 @@ class Project():
             res = re.search(' FROM (.*?) WHERE ', soql_upper, re.IGNORECASE).group(1).strip()
         except:
             try:
-                res = re.search(' FROM (.*?) LIMIT ', soql_upper, re.IGNORECASE).group(1).strip()
+                res = re.search(' FROM (.*?) GROUP ', soql_upper, re.IGNORECASE).group(1).strip()
             except:
                 try:
-                    res = re.search(' FROM (.*?) GROUP ', soql_upper,
+                    res = re.search(' FROM (.*?) ORDER ', soql_upper,
                                     re.IGNORECASE).group(1).strip()
                 except:
                     try:
-                        res = re.search(' FROM (.*?) ORDER ', soql_upper,
+                        res = re.search(' FROM (.*?) LIMIT ', soql_upper,
                                         re.IGNORECASE).group(1).strip()
                     except:
                         res = soql[soql_upper.find(' FROM ') + 6:].strip()
