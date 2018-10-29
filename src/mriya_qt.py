@@ -340,6 +340,8 @@ BoxLayout:
                                            size_hint=(None, None), size=(400, 150),
                                            auto_dismiss=False)
                 self.popup.open()
+            else:
+                self.do_save()
         else:
             self.do_save()
 
