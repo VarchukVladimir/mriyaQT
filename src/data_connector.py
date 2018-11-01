@@ -35,6 +35,7 @@ MultithreadLoadParam = namedtuple('MultithreadLoadParam', ['object_name', 'soql'
 
 QUERY_LIMIT = 200
 BATCH_SIZE = 200
+BATCH_SIZE_LIMIT = 9 * 1024 * 1024
 session_file = 'sessions.ini'
 DS_TYPE_SF = 'SALESFORCE'
 DS_TYPE_JSON = 'JSON'
@@ -573,6 +574,7 @@ class RESTConnector:
                 dict_csv = data
             batch_data = []
             keys = {}
+            batch_size_counter = 0
             # preparing structure for storing results
             if external_keys is not None:
                 for ext_key in external_keys:
@@ -581,10 +583,12 @@ class RESTConnector:
                 if not i:
                     header = row.keys()
                 row_size = len(dumps(row))
-                if (not i % batch_size and i > 0) or len(dumps(batch_data))+row_size > 10000000:
+                batch_size_counter = batch_size_counter + row_size
+                if (not i % batch_size and i > 0) or batch_size_counter > BATCH_SIZE_LIMIT:
                     params = UploaderParam(job, header, batch_data, 0)
                     batches[self.upload_batch(params)]=keys.copy()
                     batch_data = []
+                    batch_size_counter = 0
                     # filling key values for storing resiults
                     if external_keys is not None:
                         for ext_key_ in external_keys:
@@ -668,7 +672,7 @@ class RESTConnector:
         return batches
 
     def bulk_insert(self, object, data, external_keys=None):
-        job = self.bulk.create_insert_job(object, contentType='CSV')
+        job = self.bulk.create_insert_job(object, contentType='CSV', concurrency='Parallel')
         batches = self.batches_uploader(job,data,batch_size=self.batch_size, external_keys=external_keys)
         self.connector_wait(job, batches, 'bulk insert done')
         self.bulk.close_job(job)
@@ -676,7 +680,7 @@ class RESTConnector:
 
 
     def bulk_update(self, object, data,external_keys=None):
-        job = self.bulk.create_update_job(object, contentType='CSV')
+        job = self.bulk.create_update_job(object, contentType='CSV', concurrency='Parallel')
         batches = self.batches_uploader(job, data, batch_size=self.batch_size,external_keys=external_keys)
         self.connector_wait(job, batches, 'bulk update done')
         self.bulk.close_job(job)
