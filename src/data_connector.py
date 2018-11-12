@@ -582,7 +582,7 @@ class RESTConnector:
             for i, row in enumerate(dict_csv):
                 if not i:
                     header = row.keys()
-                row_size = len(dumps(row))
+                row_size = len(dumps(row.values()))
                 batch_size_counter = batch_size_counter + row_size
                 if (not i % batch_size and i > 0) or batch_size_counter > BATCH_SIZE_LIMIT:
                     params = UploaderParam(job, header, batch_data, 0)
