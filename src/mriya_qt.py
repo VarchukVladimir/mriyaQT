@@ -58,6 +58,15 @@ StandartObjectList_uppercase = [ object_item.upper() for object_item in Standart
 
 ObjectsList = []
 
+# settings = {'api_type':'BulkAPI',
+#             'batch_size':10000,
+#             'ctrl_key':305,
+#             'alt_key':308,
+#             'concurrency_mode':'parallel'}
+#
+# if p.exists('settings.json'):
+#     settings = json.load(open('settings.ini'))
+
 config_file = argv[1] if len(argv) >= 2 else p.join('config.ini')
 print(len(argv))
 sf_object = None
@@ -220,11 +229,11 @@ class TaskListItem(BoxLayout):
     task_content = StringProperty()
     task_title = StringProperty()
     task_index = NumericProperty()
-    task_sql = StringProperty()
+    # task_sql = StringProperty()
     task_type = StringProperty()
-    task_input = StringProperty()
-    task_output = StringProperty()
-    task_source = StringProperty()
+    # task_input = StringProperty()
+    # task_output = StringProperty()
+    # task_source = StringProperty()
     task_exec = BooleanProperty()
     task_status = StringProperty()
     def __init__(self, **kwargs):
@@ -251,15 +260,15 @@ class Tasks(Screen):
                 print(item)
                 return {
                     'task_index': row_index,
-                    'task_content': item['content'],
+                    # 'task_content': item['content'],
                     'task_title': item['title'],
-                    'task_sql':item['sql'],
+                    # 'task_sql':item['sql'],
                     'task_type':item['type'],
                     'task_command':item['command'],
-                    'task_input':item['input'],
-                    'task_external_id_name':item['external_id_name'],
-                    'task_output':item['output'],
-                    'task_source':item['source'],
+                    # 'task_input':item['input'],
+                    # 'task_external_id_name':item['external_id_name'],
+                    # 'task_output':item['output'],
+                    # 'task_source':item['source'],
                     'task_exec':item['exec'],
                     'task_status':item['status']
                 }
@@ -267,14 +276,14 @@ class Tasks(Screen):
                 print('run ')
                 return {
                     'task_index': row_index,
-                    'task_content': item['content'],
+                    # 'task_content': item['content'],
                     'task_title': item['title'],
-                    'task_sql':item['sql'],
+                    # 'task_sql':item['sql'],
                     'task_type':item['type'],
                     'task_command':item['command'],
-                    'task_input':item['input'],
-                    'task_output':item['output'],
-                    'task_source':item['source'],
+                    # 'task_input':item['input'],
+                    # 'task_output':item['output'],
+                    # 'task_source':item['source'],
                     'task_exec':item['exec'],
                     'task_status':item['status']
                 }
@@ -282,13 +291,13 @@ class Tasks(Screen):
             print('run last')
             return {
                 'task_index': row_index,
-                'task_content': item['content'],
+                # 'task_content': item['content'],
                 'task_title': item['title'],
-                'task_sql':item['sql'],
+                # 'task_sql':item['sql'],
                 'task_type':item['type'],
-                'task_input':item['input'],
-                'task_output':item['output'],
-                'task_source':item['source'],
+                # 'task_input':item['input'],
+                # 'task_output':item['output'],
+                # 'task_source':item['source'],
                 'task_exec':item['exec'],
                 'task_status':item['status']
             }
@@ -490,9 +499,27 @@ BoxLayout:
         return [task_item['title'] for task_item in self.tasks.data]
 
     def save_task(self, task_index, data):
-        for data_item in data:
-            self.tasks.data[task_index][data_item] = data[data_item]
-        self.save_tasks()
+        existing_names = [title_name['title'] for title_name in self.tasks.data]
+        if data['title'] in  existing_names:
+            print ('name already exists')
+            content_str = '''
+BoxLayout:
+    orientation:'vertical'
+    Label:
+        halign:'center'
+        text: "Poject was not saved. \\nTask with name {task_name} already exists. \\nPlease specify another name."
+    BoxLayout:
+        orientation:'horizontal'
+'''.format(task_name=self.tasks.data[task_index]['title'], task_index=task_index)
+            self.popup = Popup(title='Wrong task name',
+                               content=Builder.load_string(content_str),
+                               size_hint=(None, None), size=(400, 150),
+                               auto_dismiss=True)
+            self.popup.open()
+        else:
+            for data_item in data:
+                self.tasks.data[task_index][data_item] = data[data_item]
+            self.save_tasks()
 
     def on_skip_task(self, instance, value, task_index):
         self.tasks.data[task_index]['exec'] = value
@@ -538,7 +565,9 @@ BoxLayout:
         config.setdefaults('mriya', {
             'batch_size':5000,
             'concurrency':'Parallel',
-            'api_type':'BulkAPI'})
+            'api_type':'BulkAPI',
+            'ctrl_key':305,
+            'alt_key':308})
 
     def build_settings(self, settings):
         settings.add_json_panel('Mriya settings',

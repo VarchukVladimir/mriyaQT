@@ -112,20 +112,20 @@ Button:
                 self.ids.ti_sql.cursor = (cr + 7, cl)
 
     def on_task_name_change(self, task_names):
-        new_task_name = self.ids.ti_task_name.text
-        same_task_name_index = 0
-        for i, task_name in enumerate(task_names):
-            if task_name.startswith(new_task_name) and self.task_index != i:
-                if new_task_name != task_name:
-                    suffix = task_name[len(new_task_name):]
-                    if suffix.isdigit():
-                        same_task_name_index = int(suffix) + 1
-                else:
-                    same_task_name_index = 1
-        if same_task_name_index == 0:
-            self.ids.ti_task_name.text = new_task_name
-        else:
-            self.ids.ti_task_name.text = '{0}{1:02d}'.format(new_task_name, same_task_name_index)
+        # new_task_name = self.ids.ti_task_name.text
+        # same_task_name_index = 0
+        # for i, task_name in enumerate(task_names):
+        #     if task_name.startswith(new_task_name) and self.task_index != i:
+        #         if new_task_name != task_name:
+        #             suffix = task_name[len(new_task_name):]
+        #             if suffix.isdigit():
+        #                 same_task_name_index = int(suffix) + 1
+        #         else:
+        #             same_task_name_index = 1
+        # if same_task_name_index == 0:
+        #     self.ids.ti_task_name.text = new_task_name
+        # else:
+        #     self.ids.ti_task_name.text = '{0}{1:02d}'.format(new_task_name, same_task_name_index)
         self.ids.ti_output.text = p.join(self.project.project_data_dir, self.ids.ti_task_name.text + '.csv')
 
     def set_task_output(self):
