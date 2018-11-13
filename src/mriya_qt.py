@@ -499,7 +499,7 @@ BoxLayout:
         return [task_item['title'] for task_item in self.tasks.data]
 
     def save_task(self, task_index, data):
-        existing_names = [title_name['title'] for title_name in self.tasks.data]
+        existing_names = [ title_name['title']  for i, title_name in enumerate(self.tasks.data) if i<>task_index]
         if data['title'] in  existing_names:
             print ('name already exists')
             content_str = '''
