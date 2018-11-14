@@ -119,7 +119,6 @@ Button:
         self.ids.ti_task_output.text = ''
 
     def on_release_input_task_button(self, text):
-        # del self.selection[text.lower()]
         self.refresh_input_task_buttons()
 
     def on_field_list_click_item(self, d):
@@ -134,25 +133,11 @@ Button:
     def on_text_object_filter(self, input_text):
         if len(self.save_task_list) == 0:
             self.save_task_list = self.task_list.adapter.data
-        print('input_text')
-        print(input_text)
-        # self.save_task_list
-        print('self.task_list.adapter.data')
-        print(self.task_list.adapter.data)
-        print('self.save_task_list')
-        print(self.save_task_list)
         self.task_list.adapter.data = []
         for field in self.save_task_list:
             if field.lower().startswith(input_text.lower()):
                 self.task_list.adapter.data.append(field)
         self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
-
-        # if self.field_list and hasattr(self, 'fields_selected_task'):
-        #     self.field_list.adapter.data = []
-        #     for field in self.fields_selected_task:
-        #         if field.lower().startswith(input_text.lower()):
-        #             self.field_list.adapter.data.append(field)
-        #     self.field_list.adapter.bind(on_selection_change=self.on_task_list_click)
 
     def on_text_field_filter(self, input_text):
         if self.field_list and hasattr(self, 'fields_selected_task'):
