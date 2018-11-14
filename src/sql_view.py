@@ -25,6 +25,7 @@ class SQLView(Screen):
     def __init__(self, **kwargs):
         super(SQLView, self).__init__(**kwargs)
         self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
+        self.save_task_list = self.task_list.adapter.data[:]
         self.project = kwargs['project']
         input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
         if self.task_input=='' or self.task_input is None:
@@ -96,14 +97,14 @@ Button:
                             break
                     self.selection[self.task_list.adapter.selection[0].text.lower()] = selection_values
             self.refresh_input_task_buttons()
-            fields_selected_task = []
+            self.fields_selected_task = []
             for tasks in self.project.project['workflow']:
                 if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
-                    fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
+                    self.fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
                 if tasks['type'] == 'SQL_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
-                    fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
+                    self.fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
 
-            self.field_list.adapter.data = fields_selected_task
+            self.field_list.adapter.data = self.fields_selected_task
             self.field_list.adapter.bind(on_selection_change=self.on_field_list_click_item)
             if 'ctrl' in self.local_modifiers:
                 cr, cl = self.ids.ti_sql.cursor
@@ -112,20 +113,6 @@ Button:
                 self.ids.ti_sql.cursor = (cr + 7, cl)
 
     def on_task_name_change(self, task_names):
-        # new_task_name = self.ids.ti_task_name.text
-        # same_task_name_index = 0
-        # for i, task_name in enumerate(task_names):
-        #     if task_name.startswith(new_task_name) and self.task_index != i:
-        #         if new_task_name != task_name:
-        #             suffix = task_name[len(new_task_name):]
-        #             if suffix.isdigit():
-        #                 same_task_name_index = int(suffix) + 1
-        #         else:
-        #             same_task_name_index = 1
-        # if same_task_name_index == 0:
-        #     self.ids.ti_task_name.text = new_task_name
-        # else:
-        #     self.ids.ti_task_name.text = '{0}{1:02d}'.format(new_task_name, same_task_name_index)
         self.ids.ti_output.text = p.join(self.project.project_data_dir, self.ids.ti_task_name.text + '.csv')
 
     def set_task_output(self):
@@ -143,3 +130,34 @@ Button:
             if 'ctrl' in self.local_modifiers:
                 insert_str = insert_str + ','
             self.ids.ti_sql.insert_text(insert_str)
+
+    def on_text_object_filter(self, input_text):
+        if len(self.save_task_list) == 0:
+            self.save_task_list = self.task_list.adapter.data
+        print('input_text')
+        print(input_text)
+        # self.save_task_list
+        print('self.task_list.adapter.data')
+        print(self.task_list.adapter.data)
+        print('self.save_task_list')
+        print(self.save_task_list)
+        self.task_list.adapter.data = []
+        for field in self.save_task_list:
+            if field.lower().startswith(input_text.lower()):
+                self.task_list.adapter.data.append(field)
+        self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
+
+        # if self.field_list and hasattr(self, 'fields_selected_task'):
+        #     self.field_list.adapter.data = []
+        #     for field in self.fields_selected_task:
+        #         if field.lower().startswith(input_text.lower()):
+        #             self.field_list.adapter.data.append(field)
+        #     self.field_list.adapter.bind(on_selection_change=self.on_task_list_click)
+
+    def on_text_field_filter(self, input_text):
+        if self.field_list and hasattr(self, 'fields_selected_task'):
+            self.field_list.adapter.data = []
+            for field in self.fields_selected_task:
+                if field.lower().startswith(input_text.lower()):
+                    self.field_list.adapter.data.append(field)
+            self.field_list.adapter.bind(on_selection_change=self.on_field_list_click_item)

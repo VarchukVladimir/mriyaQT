@@ -352,11 +352,23 @@
                     height:'35dp'
                     text_size: self.width, None
                     text: 'Available objects:'
+                TextInput:
+                    id:ti_filter_objects
+                    size_hint_y: None
+                    height: '30dp'
+                    text: ''
+                    on_text: root.on_text_object_filter(self.text)
                 ListView:
                     id:lv_tasks
                     halign: 'left'
                     text_size: self.size
                     adapter: ListAdapter( data=root.task_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_task_list_click)
+                TextInput:
+                    id:ti_filter_fields
+                    size_hint_y: None
+                    height: '30dp'
+                    text: ''
+                    on_text: root.on_text_field_filter(self.text)
                 ListView:
                     id:lv_fields
                     halign: 'left'
@@ -725,6 +737,12 @@
                 width: self.height * 2
                 on_release: app.exec_workflow()
             Button:
+#                canvas:
+#                    Rectangle:
+#                        source:'icons/sf.png'
+#                       size: self.size
+#                        size: self.size[0]-10,self.size[1]-10
+#                        pos: self.pos[0]+5,self.pos[1]+5
                 text: 'SF Query'
                 size_hint_x: None
                 width: self.height * 2

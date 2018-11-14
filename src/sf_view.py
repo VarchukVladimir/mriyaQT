@@ -108,7 +108,7 @@ class TaskView(Screen):
     def on_text_field_filter(self, input_text):
         if self.source_object_field_list:
             print(self.object_fileds)
-            selection = self.object_fileds.adapter.selection
+            # selection = self.object_fileds.adapter.selection
             self.object_fileds.adapter.data = []
             for field_item in sorted(self.source_object_field_list.values()):
                 if field_item.lower().startswith(input_text.lower()):
