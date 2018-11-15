@@ -1,3 +1,5 @@
+import tempfile
+
 __author__ = 'Volodymyr Varchuk'
 __email__ = "vladimir.varchuk@rackspace.com"
 
@@ -7,7 +9,7 @@ from project_utils import Timer, check_result
 from json import load, dump
 import csvquerytool_table_names
 import re
-from os import path as p
+from os import path as p, mkdir
 
 WF_EXECUTE = 'execute'
 WF_MAPPING = 'mapping'
@@ -111,6 +113,20 @@ class MigrationWorkflow:
 
         return job_message
 
+    def __pre_execute_sql_query(self,sql,input_data,output_data):
+        temp_dir = tempfile.gettempdir()
+        temp_input_data = []
+        for in_file in input_data:
+            out_file = p.join(temp_dir,p.basename(in_file))
+            temp_input_data.append(out_file)
+            in_f = open(in_file, 'r')
+            out_f = open(out_file, 'w')
+            s1 = in_f.readline()
+            out_f.write(s1)
+            out_f.close()
+            in_f.close()
+        csvquerytool_table_names.run_query(sql,temp_input_data, open(temp_input_data[0] + '.tmp', 'w'))
+
     def execute_sql_query(self, sql_params):
         job_message = sql_params['message']
 
@@ -128,6 +144,7 @@ class MigrationWorkflow:
         print('\t'+job_message)
         if type(output_data) == str:
             output_data = open(output_data, 'w')
+        self.__pre_execute_sql_query(sql,input_data,output_data)
         csvquerytool_table_names.run_query(sql,input_data,output_data)
         return job_message
 
