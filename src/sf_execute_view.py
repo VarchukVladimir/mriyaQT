@@ -105,6 +105,7 @@ class BatchExecuteView(Screen):
     def on_exec_type_text(self):
         for task in self.project.project['workflow']:
             if task['type'] == 'SQL_Query' and self.ids.ce_source_file.text.lower() == task['title'].lower():
+                self.ids.ti_task_name.text = self.ids.ce_source_file.text.lower() + '_' + self.ids.ce_exec_type.text
                 self.load_data(task['output'])
                 self.preview_source_file_name = task['output']
                 self.ids.ti_text_input_source_file_name.text = task['output']
