@@ -85,9 +85,8 @@ class MigrationWorkflow:
                     w_str = ','.join(['"{0}"'.format(column) for column in columns])
                     f.write(w_str)
         else:
-            json_result_file = p.join(p.split(job_params['input_data'])[0], p.split(job_params['input_data'])[1].split('.')[0] + 'exec_result.json')
+            json_result_file = '.'.join (output_data.split('.')[:-1] + ['json'])
             print(json_result_file)
-
 
         if job_type == JT_UPSERT:
             external_id_name = job_params['exteranl_id_name'][0]
@@ -101,11 +100,8 @@ class MigrationWorkflow:
         if res is not None:
             if (output_data is None or output_data == ''):
                 output_data = json_result_file
-
             dump(res,open(json_result_file,'w'))
-
             to_csv_from_dict(res, output_data)
-
             if job_type != JT_QUERY:
                 check_result(job_message, json_result_file)
 

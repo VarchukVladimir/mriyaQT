@@ -539,8 +539,11 @@ BoxLayout:
         self.root.current = self.tasks.name
         self.title = 'MriyaQT - {0} :: [{1}]'.format(p.basename(project_file).split('.')[0], config_file)
 
-    def go_to_review_screen(self, output_path):
-        review_screen = ReviewScreen(name=p.basename(output_path), file_name=output_path, previous_screen=self.root.current)
+    def go_to_review_screen(self, output_path, errors_only = False):
+        o_path = output_path
+        if errors_only:
+            o_path = '.'.join( output_path.split('.')[:-2] + [output_path.split('.')[-2] + 'errors'] + [output_path.split('.')[-1] ])
+        review_screen = ReviewScreen(name=p.basename(o_path), file_name=o_path, previous_screen=self.root.current)
         if self.root.has_screen(review_screen.name):
             self.root.remove_widget(self.root.get_screen(review_screen.name))
         self.root.add_widget(review_screen)
