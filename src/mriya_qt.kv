@@ -615,12 +615,19 @@
                         height: '30dp'
                         text: root.task_output
                     Button:
+                        text: 'ViewErrors'
+                        size_hint_y: None
+                        size_hint_x: None
+                        height: '30dp'
+                        width: self.height + 60
+                        on_release: app.go_to_review_screen(root.task_output, True)
+                    Button:
                         text: 'View'
                         size_hint_y: None
                         size_hint_x: None
                         height: '30dp'
                         width: self.height + 10
-                        on_release: app.go_to_review_screen(root.task_output)
+                        on_release: app.go_to_review_screen(root.task_output, False)
 
 
 <TaskListItem>:
