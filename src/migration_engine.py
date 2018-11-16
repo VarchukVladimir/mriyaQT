@@ -5,7 +5,7 @@ __email__ = "vladimir.varchuk@rackspace.com"
 
 
 import logging
-from project_utils import Timer, check_result
+from project_utils import Timer, check_result, to_csv_from_dict
 from json import load, dump
 import csvquerytool_table_names
 import re
@@ -98,18 +98,16 @@ class MigrationWorkflow:
             res = connector.bulk_update(object, input_data, external_id_name)
         if job_type == JT_DELETE:
             res = connector.bulk_delete(object, job_params['where_condition'], external_id_name)
-        # if res:
-        #     dump(res,open(output_data,'w'))
         if res is not None:
             if (output_data is None or output_data == ''):
                 output_data = json_result_file
-            dump(res,open(output_data,'w'))
-            if job_type != JT_QUERY:
-                if output_data == json_result_file:
-                    check_result(job_message, json_result_file)
-                else:
-                    check_result(job_message, output_data)
 
+            dump(res,open(json_result_file,'w'))
+
+            to_csv_from_dict(res, output_data)
+
+            if job_type != JT_QUERY:
+                check_result(job_message, json_result_file)
 
         return job_message
 
