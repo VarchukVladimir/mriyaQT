@@ -96,7 +96,7 @@ class MigrationWorkflow:
         if job_type == JT_UPDATE:
             res = connector.bulk_update(object, input_data, external_id_name)
         if job_type == JT_DELETE:
-            res = connector.bulk_delete(object, job_params['where_condition'], external_id_name)
+            res = connector.bulk_simple_delete(object, input_data)
         if res is not None:
             if (output_data is None or output_data == ''):
                 output_data = json_result_file

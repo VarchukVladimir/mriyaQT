@@ -9,15 +9,11 @@ import beatbox
 import logging
 import sys
 import csv
-from project_utils import spin, get_object_name, from_csv_to_dict, printProgress
-# from project_utils_engine import
+from project_utils import spin, from_csv_to_dict, printProgress
 from collections import namedtuple
 from salesforce_bulk__ import *
 import json
-import requests
 from json import loads, load, dump, dumps
-import re
-import csvquerytool
 import StringIO
 from multiprocessing import Pool, Queue
 import sqlparse
@@ -413,9 +409,6 @@ class RESTConnector:
 
 
     def _get_soql_template(self, soql):
-        # print(sqlparse.parse(soql))
-        # print(sqlparse.split(soql))
-        # print(sqlparse.format(soql))
         stmt = sqlparse.parse(soql)[0]
         soql_template = ''
         find_where =  False
@@ -520,8 +513,6 @@ class RESTConnector:
         batch = self.bulk.query(job, soql)
         self.connector_wait(job,[batch],'Query done')
         self.bulk.close_job(job)
-        # job = '750W0000001512q'
-        # batch = '751W0000000gqGe'
         if csv_file:
             open_mode = 'w'
             with open(csv_file, open_mode) as f_csv:
@@ -704,7 +695,7 @@ class RESTConnector:
         return self.return_result_batches(delete_job,batches,external_keys=external_keys)
 
     def bulk_simple_delete(self, object_name, records_for_deleting):
-        external_keys=['id']
+        external_keys=['Id']
         delete_job = self.bulk.create_job(object_name=object_name, operation='delete')
         batches = self.batches_uploader(job=delete_job,data=records_for_deleting,batch_size=self.batch_size, external_keys=external_keys)
         self.connector_wait(job=delete_job,batches_in=batches,ending_message='deletion done')
