@@ -673,7 +673,7 @@
             id:label_task_name
             canvas.before:
                 Color:
-                    rgb: (0.3,0.3,0.5,1) if root.task_type=='SQL_Query' else (0.4,0.4,0.4,1) if root.task_type=='SF_Query' else (0.4,0.4,0.5,1)
+                    rgb: root.get_color()
                 Rectangle:
                     pos: (self.pos[0]+1,self.pos[1])
                     size: self.width, self.height
@@ -742,7 +742,7 @@
                 text: 'Exec All'
                 size_hint_x: None
                 width: self.height * 2
-                on_release: app.exec_workflow()
+                on_release: app.cal_exec_workflow()
             Button:
 #                canvas:
 #                    Rectangle:

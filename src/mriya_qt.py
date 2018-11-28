@@ -229,11 +229,8 @@ class TaskListItem(BoxLayout):
     task_content = StringProperty()
     task_title = StringProperty()
     task_index = NumericProperty()
-    # task_sql = StringProperty()
+    task_command = StringProperty()
     task_type = StringProperty()
-    # task_input = StringProperty()
-    # task_output = StringProperty()
-    # task_source = StringProperty()
     task_exec = BooleanProperty()
     task_status = StringProperty()
     def __init__(self, **kwargs):
@@ -244,9 +241,22 @@ class TaskListItem(BoxLayout):
         super(TaskListItem, self).__init__(**kwargs)
 
     def refresh_status(self):
-        # self.ids.label_task_name.background_color
         if self.task_status == 'working':
             print(self.task_status)
+
+    def get_color(self):
+        color = (0.3, 0.3, 0.5, 1)
+        if self.task_type == 'SF_Execute':
+            if self.task_command == 'delete':
+                color = (0.5, 0.3, 0.4, 1)
+            elif self.task_command == 'update':
+                color = (0.4, 0.5, 0.5, 1)
+            else:
+                color = (0.4, 0.4, 0.5, 1)
+        if self.task_type == 'SF_Query':
+            color = (0.4, 0.4, 0.4, 1)
+        return color
+
 
 class Tasks(Screen):
     data = ListProperty()
@@ -585,12 +595,46 @@ BoxLayout:
             print(tt)
         return str(tt)
 
-    def exec_workflow(self):
+    def cal_exec_workflow(self):
+        delete_operation_count = 0
+        for task_item in self.tasks.data:
+            if task_item['exec'] and task_item['type'] == 'SF_Execute' and task_item['command'] == 'delete':
+                delete_operation_count = delete_operation_count + 1
+        if delete_operation_count > 0:
+            content_str = '''
+BoxLayout:
+    orientation:'vertical'
+    Label:
+        halign:'center'
+        height:100
+        text: "Are you sure that you want to execute \\n'DELETE' \\noperation in SalesForce for {del_count} task{end}?"
+    BoxLayout:
+        orientation:'horizontal'
+        Button:
+            text: "Yes"
+            on_release: app.exec_workflow (True)
+        Button:
+            text: "No"
+            on_release: app.exec_workflow (False)
+                        '''.format(del_count=delete_operation_count, end='s' if delete_operation_count>1 else '')
+            self.popup = Popup(title='Delete operation in SalesForce',
+                           content=Builder.load_string(content_str),
+                           size_hint=(None, None), size=(400, 150),
+                           auto_dismiss=False)
+            self.popup.open()
+        else:
+            self.exec_workflow(True)
+
+    def exec_workflow(self, do_run_delete=True):
+        if hasattr(self, 'popup'):
+            self.popup.dismiss()
         connection_dict = {}
+        if not do_run_delete:
+            return
+
         for task_item in self.tasks.data:
             if task_item['exec'] and  (task_item['type'] == 'SF_Query' or task_item['type'] == 'SF_Execute') and task_item['source'] not in connection_dict.keys():
                 connection_dict[task_item['source']] = RESTConnector(get_conn_param(config[task_item['source']]))
-
         for task_item in self.tasks.data:
             cmd_exec = []
             if task_item['exec']:
@@ -645,6 +689,8 @@ BoxLayout:
                 task_item['status'] = 'idle'
                 task_item['title'] = save_title
                 self.refresh_tasks()
+
+
     def run_task__(self, cmd_exec):
         print('run in thread')
         f = open('test.txt', 'w')
