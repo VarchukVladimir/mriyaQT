@@ -58,15 +58,6 @@ StandartObjectList_uppercase = [ object_item.upper() for object_item in Standart
 
 ObjectsList = []
 
-# settings = {'api_type':'BulkAPI',
-#             'batch_size':10000,
-#             'ctrl_key':305,
-#             'alt_key':308,
-#             'concurrency_mode':'parallel'}
-#
-# if p.exists('settings.json'):
-#     settings = json.load(open('settings.ini'))
-
 config_file = argv[1] if len(argv) >= 2 else p.join('config.ini')
 print(len(argv))
 sf_object = None
@@ -186,8 +177,6 @@ class Project():
         return res
 
     def get_fields_from_sql(self, sql):
-        # re_search = re.search('SELECT(.*?)FROM', sql, re.IGNORECASE).group(1)
-        # if re_search:
         re_res = re.search('SELECT(.*?)FROM', sql, re.IGNORECASE).group(1)
         sql_fields = None
         if re_res:
@@ -270,15 +259,9 @@ class Tasks(Screen):
                 print(item)
                 return {
                     'task_index': row_index,
-                    # 'task_content': item['content'],
                     'task_title': item['title'],
-                    # 'task_sql':item['sql'],
                     'task_type':item['type'],
                     'task_command':item['command'],
-                    # 'task_input':item['input'],
-                    # 'task_external_id_name':item['external_id_name'],
-                    # 'task_output':item['output'],
-                    # 'task_source':item['source'],
                     'task_exec':item['exec'],
                     'task_status':item['status']
                 }
@@ -286,14 +269,9 @@ class Tasks(Screen):
                 print('run ')
                 return {
                     'task_index': row_index,
-                    # 'task_content': item['content'],
                     'task_title': item['title'],
-                    # 'task_sql':item['sql'],
                     'task_type':item['type'],
                     'task_command':item['command'],
-                    # 'task_input':item['input'],
-                    # 'task_output':item['output'],
-                    # 'task_source':item['source'],
                     'task_exec':item['exec'],
                     'task_status':item['status']
                 }
@@ -301,13 +279,8 @@ class Tasks(Screen):
             print('run last')
             return {
                 'task_index': row_index,
-                # 'task_content': item['content'],
                 'task_title': item['title'],
-                # 'task_sql':item['sql'],
                 'task_type':item['type'],
-                # 'task_input':item['input'],
-                # 'task_output':item['output'],
-                # 'task_source':item['source'],
                 'task_exec':item['exec'],
                 'task_status':item['status']
             }
@@ -328,9 +301,6 @@ class TaskApp(App):
         root.add_widget(self.start_screen)
         self.title = '[{0}]'.format(config_file)
         return root
-
-    # def on_release_field_button(self, text):
-    #     print(text)
 
     def load_tasks(self):
         data = self.project.project['workflow']
@@ -566,12 +536,6 @@ BoxLayout:
 
     def goto_settings(self):
         self.open_settings()
-        # self.settings_popup = Popup(title='Application settings',
-        #                    content=Builder.load_string(open('src/settings.kv').read()),
-        #                    size_hint=(None, None), size=(400, 150),
-        #                    auto_dismiss=True)
-        # self.settings_popup.open()
-
         pass
 
     def build_config(self, config):
@@ -663,9 +627,6 @@ BoxLayout:
                                }
                     }]
                 elif task_item['type'] == 'SF_Execute':
-                    # print(connection_dict)
-                 # {'sql':'', 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text}
-                    print('!!!!!!!!!!!input_data', task_item['input'])
                     cmd_exec = [{
                     'execute':{'input_data':task_item['input'].strip(),
                                'connector':connection_dict[task_item['source']],
@@ -677,9 +638,7 @@ BoxLayout:
                                'message':''
                                }
                     }]
-                    print(cmd_exec)
                 self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
-                print(cmd_exec)
                 import threading
                 with Capturing() as output:
                     threading.Thread(self.run_task__(cmd_exec)).start()
@@ -701,8 +660,6 @@ BoxLayout:
             wf_task.execute_workflow()
         except:
             print "Unexpected error:", sys.exc_info()
-            # self.tasks.ids.lv_tasks._trigger_reset_populate()
-#
 
 if __name__ == '__main__':
     TaskApp(title="Mriya Query Tool").run()
