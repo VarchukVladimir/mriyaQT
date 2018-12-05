@@ -371,7 +371,6 @@ BoxLayout:
         else:
             print('task {0} was not removed'.format(task_index))
 
-
     def edit_task(self, task_index):
         task = self.tasks.data[task_index]
         name = 'task{}'.format(task_index)
@@ -426,6 +425,9 @@ BoxLayout:
                 task_output=task.get('output'),
                 task_source=task.get('source'),
                 task_exec=task.get('exec'),
+                task_batch_size=task.get('batch_size') if task.get('batch_size') else '',
+                task_concurrency=task.get('concurrency') if task.get('concurrency') else '',
+                task_api_type=task.get('api_type'),
                 task_external_id_name=task.get('external_id_name'),
                 sources_list = SourceList,
                 preview_text = '',
@@ -638,10 +640,18 @@ BoxLayout:
                                'message':''
                                }
                     }]
+                    if 'concurrency' in task_item.keys():
+                        cmd_exec[0]['execute']['concurrency'] = task_item['concurrency']
+                    if 'batch_size' in task_item.keys():
+                        cmd_exec[0]['execute']['batch_size'] = int(task_item['batch_size'])
                 self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
                 import threading
                 with Capturing() as output:
-                    threading.Thread(self.run_task__(cmd_exec)).start()
+                    try:
+                        wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
+                        wf_task.execute_workflow()
+                    except:
+                        print "Unexpected error:", sys.exc_info()
                 for line in output:
                     if not line.startswith('Wait for job done'):
                         self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line

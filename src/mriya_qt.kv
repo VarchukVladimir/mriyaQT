@@ -454,7 +454,7 @@
                 text: 'Save'
                 size_hint_x: None
                 width: self.height
-                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text, 'external_id_name':ce_external_id_name.text})
+                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text, 'external_id_name':ce_external_id_name.text, 'concurrency':ce_concurrency.text, 'batch_size':ti_batch_size.text})
             Button:
                 text: 'X'
                 size_hint_x: None
@@ -533,20 +533,20 @@
                     id:ti_batch_size
                     size_hint_y: None
                     height: '30dp'
-                    text: '5000'
-                    disabled:True
+                    text: '5000' if root.task_batch_size == '' else root.task_batch_size
+                    disabled:False
                 Label:
                     size_hint_y: None
                     height:'35dp'
                     text_size: self.width, None
                     text: 'Concurrency Mode:'
                 ComboEdit:
-                    id:ce_api
+                    id:ce_concurrency
                     options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['Parallel', 'Serial']]
                     size_hint_y: None
                     height: '30dp'
-                    text: 'Parallel'
-                    disabled:True
+                    text: 'Parallel' if root.task_concurrency == '' else root.task_concurrency
+                    disabled:False
 
                 Label:
                     size_hint_y: None

@@ -69,6 +69,12 @@ class MigrationWorkflow:
             connector = self.src if job_params['connector'] == 'src' else self.dst
         else:
             connector = job_params['connector']
+        batch_size = None
+        if 'batch_size' in job_params.keys():
+            batch_size = job_params['batch_size']
+        concurrency = None
+        if 'concurrency' in job_params.keys():
+            concurrency = job_params['concurrency']
 
         print('\t'+job_message)
         logging.info(job_message)
@@ -90,13 +96,13 @@ class MigrationWorkflow:
 
         if job_type == JT_UPSERT:
             external_id_name = job_params['exteranl_id_name'][0]
-            res = connector.bulk_upsert(object, external_id_name, input_data)
+            res = connector.bulk_upsert(object, external_id_name, input_data, batch_size=batch_size, concurrency=concurrency)
         if job_type == JT_INSERT:
-            res = connector.bulk_insert(object, input_data, external_id_name)
+            res = connector.bulk_insert(object, input_data, external_id_name, batch_size=batch_size, concurrency=concurrency)
         if job_type == JT_UPDATE:
-            res = connector.bulk_update(object, input_data, external_id_name)
+            res = connector.bulk_update(object, input_data, external_id_name, batch_size=batch_size, concurrency=concurrency)
         if job_type == JT_DELETE:
-            res = connector.bulk_simple_delete(object, input_data)
+            res = connector.bulk_simple_delete(object, input_data, batch_size=batch_size, concurrency=concurrency)
         if res is not None:
             if (output_data is None or output_data == ''):
                 output_data = json_result_file

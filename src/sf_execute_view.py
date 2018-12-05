@@ -30,6 +30,8 @@ class BatchExecuteView(Screen):
     selected_objects = ObjectProperty()
     preview_text = StringProperty()
     preview_source_file_name = StringProperty()
+    task_batch_size = StringProperty()
+    task_concurrency = StringProperty()
 
     objects_list = ListProperty()
     sources_list = ListProperty()

@@ -36,6 +36,8 @@ session_file = 'sessions.ini'
 DS_TYPE_SF = 'SALESFORCE'
 DS_TYPE_JSON = 'JSON'
 DS_TYPE_CSV = 'CSV'
+BULK_BATCH_SIZE = 10000
+BULK_CONCURRENCY_MODE = 'Parallel'
 
 SOAP_MERGE_REQUEST_HEADERS = {
     'content-type': 'text/xml',
@@ -662,23 +664,23 @@ class RESTConnector:
         pool.close()
         return batches
 
-    def bulk_insert(self, object, data, external_keys=None):
-        job = self.bulk.create_insert_job(object, contentType='CSV', concurrency='Parallel')
-        batches = self.batches_uploader(job,data,batch_size=self.batch_size, external_keys=external_keys)
+    def bulk_insert(self, object, data, external_keys=None, batch_size=BULK_BATCH_SIZE, concurrency=BULK_CONCURRENCY_MODE):
+        job = self.bulk.create_insert_job(object, contentType='CSV', concurrency=concurrency)
+        batches = self.batches_uploader(job,data,batch_size=batch_size, external_keys=external_keys)
         self.connector_wait(job, batches, 'bulk insert done')
         self.bulk.close_job(job)
         return self.return_result_batches(job,batches,external_keys=external_keys)
 
 
-    def bulk_update(self, object, data,external_keys=None):
-        job = self.bulk.create_update_job(object, contentType='CSV', concurrency='Parallel')
-        batches = self.batches_uploader(job, data, batch_size=self.batch_size,external_keys=external_keys)
+    def bulk_update(self, object, data,external_keys=None, batch_size=BULK_BATCH_SIZE, concurrency=BULK_CONCURRENCY_MODE):
+        job = self.bulk.create_update_job(object, contentType='CSV', concurrency=concurrency)
+        batches = self.batches_uploader(job, data, batch_size=batch_size,external_keys=external_keys)
         self.connector_wait(job, batches, 'bulk update done')
         self.bulk.close_job(job)
         return self.return_result_batches(job,batches,external_keys=external_keys)
 
 
-    def bulk_delete(self, object, ids=[], where=None, external_keys=None):
+    def bulk_delete(self, object, ids=[], where=None, external_keys=None, batch_size=BULK_BATCH_SIZE, concurrency=BULK_CONCURRENCY_MODE):
         if len(ids) == 0 and where==None:
             return []
         if len(ids) == 0:
@@ -694,18 +696,18 @@ class RESTConnector:
         self.bulk.close_job(delete_job)
         return self.return_result_batches(delete_job,batches,external_keys=external_keys)
 
-    def bulk_simple_delete(self, object_name, records_for_deleting):
+    def bulk_simple_delete(self, object_name, records_for_deleting, batch_size=BULK_BATCH_SIZE, concurrency=BULK_CONCURRENCY_MODE):
         external_keys=['Id']
-        delete_job = self.bulk.create_job(object_name=object_name, operation='delete')
-        batches = self.batches_uploader(job=delete_job,data=records_for_deleting,batch_size=self.batch_size, external_keys=external_keys)
+        delete_job = self.bulk.create_job(object_name=object_name, operation='delete', concurrency=concurrency)
+        batches = self.batches_uploader(job=delete_job,data=records_for_deleting,batch_size=batch_size, external_keys=external_keys)
         self.connector_wait(job=delete_job,batches_in=batches,ending_message='deletion done')
         self.bulk.close_job(delete_job)
         return self.return_result_batches(delete_job,batches,external_keys=external_keys)
 
 
-    def bulk_upsert(self, object, external_id_name, data):
-        job = self.bulk.create_upsert_job(object_name=object, external_id_name=external_id_name, contentType='CSV')
-        batches = self.batches_uploader(job=job,data=data,batch_size=self.batch_size)
+    def bulk_upsert(self, object, external_id_name, data, batch_size=BULK_BATCH_SIZE, concurrency=BULK_CONCURRENCY_MODE):
+        job = self.bulk.create_upsert_job(object_name=object, external_id_name=external_id_name, contentType='CSV', concurrency=concurrency)
+        batches = self.batches_uploader(job=job,data=data,batch_size=batch_size)
         self.connector_wait(job, batches, 'upserting done')
         self.bulk.close_job(job)
         return self.return_result_batches(job,batches, external_keys=external_id_name)
