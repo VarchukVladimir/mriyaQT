@@ -1,0 +1,124 @@
+<SQLView>:
+
+    task_list: lv_tasks
+    field_list: lv_fields
+
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_name_change(app.get_task_names())
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Exec'
+                size_hint_x: None
+                width: self.height
+#                on_release: root.on_task_list_click()
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':'', 'type':'SQL_Query', 'output':ti_output.text, 'input':ti_input_objects.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Available objects:'
+                TextInput:
+                    id:ti_filter_objects
+                    size_hint_y: None
+                    height: '30dp'
+                    text: ''
+                    on_text: root.on_text_object_filter(self.text)
+                ListView:
+                    id:lv_tasks
+                    halign: 'left'
+                    text_size: self.size
+                    adapter: ListAdapter( data=root.task_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_task_list_click)
+                TextInput:
+                    id:ti_filter_fields
+                    size_hint_y: None
+                    height: '30dp'
+                    text: ''
+                    on_text: root.on_text_field_filter(self.text)
+                ListView:
+                    id:lv_fields
+                    halign: 'left'
+                    text_size: self.size
+                    adapter: ListAdapter( data=root.field_list.adapter.data, cls=classes.FiledListButton, on_selection_change=root.on_field_list_click_item)
+                Label:
+                    text: 'Output file:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Input objects:'
+                TextInput:
+                    id:ti_input_objects
+                    size_hint_y: 0.2
+                    height: '30dp'
+                    text: root.task_input
+                    on_text:root.on_text_input_objects()
+                StackLayout:
+                    id:st_layout
+                    size_hint_y: 0.4
+                TextInput:
+                    id:ti_sql
+                    multiline: True
+                    text: root.task_sql
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_output
+                        size_hint_y: None
+                        height: '30dp'
+                        text: root.task_output
+                    Button:
+                        text: 'View'
+                        size_hint_y: None
+                        size_hint_x: None
+                        height: '30dp'
+                        width: self.height + 10
+                        on_release: app.go_to_review_screen(root.task_output)

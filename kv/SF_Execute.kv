@@ -1,0 +1,211 @@
+<BatchExecuteView>:
+    #field_list: lv_source_fields
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_name_change(app.get_task_names())
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ce_object.text, 'source':ce_source.text, 'type':'SF_Execute', 'output':ti_output.text, 'input':ti_text_input_source_file_name.text, 'title':ti_task_name.text, 'exec' : cb_run_in_workflow.active, 'command':ce_exec_type.text, 'external_id_name':ce_external_id_name.text, 'concurrency':ce_concurrency.text, 'batch_size':ti_batch_size.text})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source:'
+                ComboEdit:
+                    id:ce_source
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
+                    text: 'Select source' if root.task_source == '' else root.task_source
+                    on_text: root.read_controls(app.get_task_names())
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Object:'
+                ComboEdit:
+                    id:ce_object
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.objects_list]
+                    text: 'Select object' if root.task_sql is None  else root.task_sql
+#                    on_text:root.read_controls(app.get_task_names())
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Exec type:'
+                ComboEdit:
+                    id:ce_exec_type
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['insert', 'update', 'delete']]
+                    text: 'Select operation type' if root.task_command is None  else root.task_command
+                    on_text:root.on_exec_type_text()
+
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source file:'
+                ComboEdit:
+                    id:ce_source_file
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.task_list]
+                    text: 'Select source file' if root.task_input is None else root.get_task_name_from_file(root.task_input)
+                    on_text:root.on_exec_type_text()
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'External field:'
+                ComboEdit:
+                    id:ce_external_id_name
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(root.get_csv_fields(root.task_input))]
+                    text: 'Select external field' if root.task_external_id_name is None else root.task_external_id_name
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Batch size:'
+                TextInput:
+                    id:ti_batch_size
+                    size_hint_y: None
+                    height: '30dp'
+                    text: '5000' if root.task_batch_size == '' else root.task_batch_size
+                    disabled:False
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Concurrency Mode:'
+                ComboEdit:
+                    id:ce_concurrency
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['Parallel', 'Serial']]
+                    size_hint_y: None
+                    height: '30dp'
+                    text: 'Parallel' if root.task_concurrency == '' else root.task_concurrency
+                    disabled:False
+
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'API:'
+                ComboEdit:
+                    id:ce_api
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in ['BulkAPI', 'SoAPI']]
+                    size_hint_y: None
+                    height: '30dp'
+                    text: 'BulkAPI'
+                    disabled:True
+                ListView:
+                    id:dummy
+                    halign: 'left'
+                Label:
+                    text: 'Output file:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Preview file:'
+                BoxLayout:
+                    orientation: 'horizontal'
+                    #size_hint_x: None
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_text_input_source_file_name
+                        height: 35
+                        size_hint_y: None
+                        multiline: False
+#                        text:root.preview_source_file_name
+                        text:root.task_input
+                        on_text:root.load_data(self.text)
+                    TextInput:
+                        id: ti_lines
+                        size_hint_x: None
+                        size_hint_y: None
+                        height: 35
+                        width: 50
+                        multiline: False
+                        text:'200'
+                StackLayout:
+                    id:st_layout
+                    #size_hint_x: None
+                    size_hint_y: 0.4
+                TextInput:
+                    id:ti_source_preview
+                    multiline: True
+                    text: root.preview_text
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_output
+                        size_hint_y: None
+                        height: '30dp'
+                        text: root.task_output
+                    Button:
+                        text: 'ViewErrors'
+                        size_hint_y: None
+                        size_hint_x: None
+                        height: '30dp'
+                        width: self.height + 60
+                        on_release: app.go_to_review_screen(root.task_output, True)
+                    Button:
+                        text: 'View'
+                        size_hint_y: None
+                        size_hint_x: None
+                        height: '30dp'
+                        width: self.height + 10
+                        on_release: app.go_to_review_screen(root.task_output, False)
