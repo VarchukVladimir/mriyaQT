@@ -1,3 +1,5 @@
+from os.path import pardir, dirname, abspath
+
 __author__ = 'Volodymyr Varchuk'
 __email__ = 'vladimir.varchuk@rackspace.com'
 
@@ -17,7 +19,7 @@ Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 import json
 import re
 import sys
-from os import path as p
+from os import path as p, listdir
 from os import mkdir
 
 from kivy.app import App, Builder
@@ -76,6 +78,11 @@ def get_fields_rest(connection, sobject):
     for field_item in req_res[0]['fields']:
         fields.append(field_item['name'])
     return sorted(fields)
+
+kv_dir = p.join(dirname(dirname(__file__)), 'kv')
+print(listdir(kv_dir))
+for kv in listdir(kv_dir):
+    Builder.load_file(p.join(kv_dir, kv))
 
 class Project():
     def __init__(self, file_name = default_project_dir):
