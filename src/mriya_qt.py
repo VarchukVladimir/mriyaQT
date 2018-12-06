@@ -1,4 +1,4 @@
-from os.path import pardir, dirname, abspath
+from os.path import dirname
 
 __author__ = 'Volodymyr Varchuk'
 __email__ = 'vladimir.varchuk@rackspace.com'
@@ -31,7 +31,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.settings import SettingsWithSidebar
-from data_connector import RESTConnector, SFBeatboxConnector
+from data_connector import RESTConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
 from migration_engine import MigrationWorkflow
@@ -45,11 +45,10 @@ from sys import argv
 from datetime import datetime
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
-Builder.load_file('mriya_qt.kv')
 
 standart_object_list_file = p.join('StandartObjectList.ini')
 
-StandartObjectList = ['Account', 'Contact', 'AccountCaontactRole', 'Lead', 'Opportunity', 'Task', 'Events', 'Notes', 'Attachment',
+StandartObjectList = ['Account', 'Contact', 'AccountContactRole', 'Lead', 'Opportunity', 'Task', 'Event', 'Note', 'Attachment',
     'Campaign', 'CampaignMember', 'User', 'AccountTeamMember']
 
 if p.exists(standart_object_list_file):
