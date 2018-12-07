@@ -60,7 +60,6 @@ StandartObjectList_uppercase = [ object_item.upper() for object_item in Standart
 ObjectsList = []
 
 config_file = argv[1] if len(argv) >= 2 else p.join('config.ini')
-print(len(argv))
 sf_object = None
 sf_source = None
 
@@ -104,7 +103,6 @@ class Project():
             self.project_file_name = file_name
             self.project = json.load(open(file_name))
             self.project_timestamp = p.getmtime(self.project_file_name)
-            print(self.project_timestamp)
             self.project_dir = self.project['project_dir']
             self.project_data_dir = self.project['project_data_dir']
             self.project_name = self.project['project_name']
@@ -121,7 +119,6 @@ class Project():
             if self.project_file_name not in projects:
                 with open(recent_projetcs_file, 'a') as f:
                     f.writelines('\n' + self.project_file_name)
-
 
     def get_sobjects(self, connection, force_refresh = False):
         if connection not in SourceList:
@@ -229,10 +226,7 @@ class TaskListItem(BoxLayout):
     task_exec = BooleanProperty()
     task_status = StringProperty()
     def __init__(self, **kwargs):
-        print('TaskListItem init')
-        print(kwargs)
         del kwargs['index']
-        print(kwargs)
         super(TaskListItem, self).__init__(**kwargs)
 
     def refresh_status(self):
@@ -256,13 +250,9 @@ class TaskListItem(BoxLayout):
 class Tasks(Screen):
     data = ListProperty()
     def args_converter(self, row_index, item):
-        print('printing item')
-        print(item)
         # if item is SF_Execute type it may have command key
         if 'command' in item.keys():
             if 'task_external_id_name' in item.keys():
-                print('run with external')
-                print(item)
                 return {
                     'task_index': row_index,
                     'task_title': item['title'],
@@ -272,7 +262,6 @@ class Tasks(Screen):
                     'task_status':item['status']
                 }
             else:
-                print('run ')
                 return {
                     'task_index': row_index,
                     'task_title': item['title'],
@@ -282,7 +271,6 @@ class Tasks(Screen):
                     'task_status':item['status']
                 }
         else:
-            print('run last')
             return {
                 'task_index': row_index,
                 'task_title': item['title'],
