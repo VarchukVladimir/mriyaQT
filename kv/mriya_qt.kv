@@ -68,20 +68,28 @@
 #        Label:
 #            id:label_task_spacer
 
-#        Label:
-#            id:label_task_info
-#            pos:(del_bbutton.pos[0] + del_bbutton.width, del_bbutton.pos[1])
-#            text_size_x:self.width
-#            halign: 'right'
-#            color:(0.4,0.4,0.6,1) if root.task_type=='SQL_Query' else (0.5,0.5,0.5,1) if root.task_type=='SF_Query' else (0.5,0.5,0.6,1)
-#            size_hint_x: 0.2
+        Label:
+            id:label_task_info
+            pos:(del_bbutton.pos[0] + del_bbutton.width, del_bbutton.pos[1])
+            text_size_x:self.width
+            halign: 'right'
+            color:root.get_text_color()
+            size_hint_x: 0.2
+            canvas.before:
+                Color:
+                    rgb: root.get_color()
+                Rectangle:
+                    pos: self.pos
+                    size: self.width, self.height
+            text: app.get_record_count(root.task_index)
+#        Image:
+#            source: 'icons/database-process-icon.png'
+#            source: root.get_icon()
+#            size_hint_x: None
+#            width: 74
 #            canvas.before:
 #                Color:
-#                    rgb: (0.3,0.3,0.5,1) if root.task_type=='SQL_Query' else (0.4,0.4,0.4,1) if root.task_type=='SF_Query' else (0.4,0.4,0.5,1)
-#                Rectangle:
-#                    pos: self.pos
-#                    size: self.width, self.height
-#            text: app.get_record_count(root.task_index)
+#                    rgb: root.get_color()
 
         Label:
             id:label_task_name
@@ -153,25 +161,90 @@
                 font_size: '16sp'
 
             Button:
-                text: 'Exec All'
+                #text: 'Exec All'
                 size_hint_x: None
-                width: self.height * 2
+                width: self.height * 4
                 on_release: app.cal_exec_workflow()
+                StackLayout:
+                    pos: self.parent.pos
+                    size: self.parent.size
+                    orientation: 'lr-tb'
+                    Image:
+                        source: 'icons/flat_color_icons/execute_48.png'
+                        size_hint_x: None
+                        width: 48
+                    Label:
+                        size_hint_x: None
+                        width: 100
+                        text: "Exec All"
             Button:
-                text: 'SF Query'
                 size_hint_x: None
-                width: self.height * 2
+                width: self.height * 4
+                on_release: app.add_task('MSSQL_Query')
+                StackLayout:
+                    pos: self.parent.pos
+                    size: self.parent.size
+                    orientation: 'lr-tb'
+                    Image:
+                        source: 'icons/flat_color_icons/db_export_48.png'
+                        size_hint_x: None
+                        width: 48
+                    Label:
+                        size_hint_x: None
+                        width: 100
+                        text: "MSSQL Query"
+#                text: 'MSSQL Query'
+            Button:
+                #text: 'SF Query'
+                size_hint_x: None
+                width: self.height * 4
                 on_release: app.add_task('SF_Query')
+                StackLayout:
+                    pos: self.parent.pos
+                    size: self.parent.size
+                    orientation: 'lr-tb'
+                    Image:
+                        source: 'icons/load_green_48.png'
+                        size_hint_x: None
+                        width: 48
+                    Label:
+                        size_hint_x: None
+                        width: 100
+                        text: "SF Query"
             Button:
-                text: 'CSV query'
+                #text: 'CSV query'
                 size_hint_x: None
-                width: self.height * 2
+                width: self.height * 4
                 on_release: app.add_task('SQL_Query')
+                StackLayout:
+                    pos: self.parent.pos
+                    size: self.parent.size
+                    orientation: 'lr-tb'
+                    Image:
+                        source: 'icons/flat_color_icons/sql-48.png'
+                        size_hint_x: None
+                        width: 48
+                    Label:
+                        size_hint_x: None
+                        width: 100
+                        text: "CSV Query"
             Button:
-                text: 'SF Execute'
+                #text: 'SF Execute'
                 size_hint_x: None
-                width: self.height * 2
+                width: self.height * 4
                 on_release: app.add_task('SF_Execute')
+                StackLayout:
+                    pos: self.parent.pos
+                    size: self.parent.size
+                    orientation: 'lr-tb'
+                    Image:
+                        source: 'icons/upload_green_48.png'
+                        size_hint_x: None
+                        width: 48
+                    Label:
+                        size_hint_x: None
+                        width: 100
+                        text: "SF Execute"
 
         ListView:
             id:lv_tasks
@@ -184,3 +257,107 @@
             height: '100dp'
             background_color: (0.8, 0.8, 0.8, 1)
             text: ''
+
+<MSSQL_Query>:
+    #selected_filed: lv_selected_fields
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_title_changed(self.text)
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Exec'
+                size_hint_x: None
+                width: self.height
+                on_release: root.exec_item(root.task_index)
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':ce_source.text, 'type':'MSSQL_Query', 'output':ti_output.text, 'input':'', 'title':ti_task_name.text, 'exec' :cb_run_in_workflow.active})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+                on_release: app.del_task(root.task_index)
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source:'
+                ComboEdit:
+                    id:ce_source
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
+                    text: 'Select source' if root.task_source == '' else root.task_source
+                    on_text: root.read_controls(app.get_task_names())
+                ListView:
+                    id:dummy
+                    halign: 'left'
+                Label:
+                    text: 'Output file:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text: 'SQL:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                TextInput:
+                    id:ti_sql
+                    multiline: True
+                    text: 'INPUT SQL' if root.task_sql == '' else root.task_sql
+#                    on_text:root.on_sql_texinput_change()
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_output
+                        size_hint_y: None
+                        height: '30dp'
+                        text: root.task_output
+#        BoxLayout:
+#            orientation: 'horizontal'
+#            size_hint_y: None
+#            height:'35dp'
+#            Label:
+#                text: 'Status:'
+#                size_hint_y: None
+#                height:'35dp'
