@@ -101,7 +101,7 @@ Button:
             for tasks in self.project.project['workflow']:
                 if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
                     self.fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
-                if (tasks['type'] == 'SQL_Query' or tasks['type'] == 'SF_Execute') and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
+                if (tasks['type'] == 'SQL_Query' or tasks['type'] == 'SF_Execute' or tasks['type'] == 'MSSQL_Query') and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
                     self.fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
 
             self.field_list.adapter.data = self.fields_selected_task
