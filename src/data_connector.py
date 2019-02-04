@@ -21,6 +21,11 @@ import requests
 from sf_merge import SoapMerge
 from httplib2 import Http
 
+import pymssql
+from collections import namedtuple
+import csv
+
+
 ConnectorParam = namedtuple('ConnectorParam',
                          ['username', 'password', 'url_prefix',
                           'organization_id', 'consumer_key',
@@ -28,6 +33,9 @@ ConnectorParam = namedtuple('ConnectorParam',
 UploaderParam = namedtuple('UploaderParam',
                          ['job' ,'header', 'batch_data', 'batch_number'])
 MultithreadLoadParam = namedtuple('MultithreadLoadParam', ['object_name', 'soql', 'header_columns', 'csv_file', 'condition'])
+MSSQLConnectorParam = namedtuple('MSSQLConnectorParam',
+                         ['server', 'user', 'password', 'database'])
+
 
 QUERY_LIMIT = 200
 BATCH_SIZE = 200
@@ -45,18 +53,51 @@ SOAP_MERGE_REQUEST_HEADERS = {
     'SOAPAction': 'merge'
 }
 
-
 def get_conn_param(conf_dict):
+    if 'type' in conf_dict.keys():
+        if conf_dict['type'] == 'mssql':
+            param = MSSQLConnectorParam(conf_dict['server'].encode('utf-8'),
+                                        conf_dict['user'].encode('utf-8'),
+                                        conf_dict['password'].encode('utf-8'),
+                                        '')
+            return param
     param = ConnectorParam(conf_dict['username'].encode('utf-8'),
-                           conf_dict['password'].encode('utf-8'),
-                           conf_dict['host_prefix'].encode('utf-8'),
-                           '',
-                           conf_dict['consumer_key'].encode('utf-8'),
-                           conf_dict['consumer_secret'].encode('utf-8'),
-                           '',
-                           int(conf_dict['threads'].encode('utf-8')),
-                           conf_dict['security_token'].encode('utf-8'))
+                            conf_dict['password'].encode('utf-8'),
+                            conf_dict['host_prefix'].encode('utf-8'),
+                            '',
+                            conf_dict['consumer_key'].encode('utf-8'),
+                            conf_dict['consumer_secret'].encode('utf-8'),
+                            '',
+                            int(conf_dict['threads'].encode('utf-8')),
+                            conf_dict['security_token'].encode('utf-8'))
     return param
+
+
+
+class MsSQLConnector:
+    def __init__(self, connection_params):
+        self.connection = pymssql.connect(server=connection_params.server, database=connection_params.database, user=connection_params.user,
+                                   password=connection_params.password)
+
+
+    def query(self, sql, output_file):
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(sql)
+        f = csv.writer(file(output_file, 'wb'))
+        f.writerow([d[0] for d in self.cursor.description])
+        rows_to_write = []
+        row = self.cursor.fetchone()
+        row_count = 0
+        while row:
+            rows_to_write.append([unicode(column).encode('utf-8') for column in row])
+            row_count = row_count + 1
+            if row_count % 10000 == 0:
+                f.writerows(rows_to_write)
+                rows_to_write = []
+                # print('fetched {0} out of {1}'.format(row_count, self.cursor.rowcount))
+            row = self.cursor.fetchone()
+        f.writerows(rows_to_write)
+        print('total row count {0}'.format(row_count))
 
 
 class SalesforceBulkExtended(SalesforceBulk):
