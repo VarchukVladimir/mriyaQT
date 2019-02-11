@@ -66,22 +66,19 @@
             background_normal: ""
             on_release: app.call_del_task(root.task_index)
 #        Label:
-#            id:label_task_spacer
-
-        Label:
-            id:label_task_info
-            pos:(del_bbutton.pos[0] + del_bbutton.width, del_bbutton.pos[1])
-            text_size_x:self.width
-            halign: 'right'
-            color:root.get_text_color()
-            size_hint_x: 0.2
-            canvas.before:
-                Color:
-                    rgb: root.get_color()
-                Rectangle:
-                    pos: self.pos
-                    size: self.width, self.height
-            text: app.get_record_count(root.task_index)
+#            id:label_task_info
+#            pos:(del_bbutton.pos[0] + del_bbutton.width, del_bbutton.pos[1])
+#            text_size_x:self.width
+#            halign: 'right'
+#            color:root.get_text_color()
+#            size_hint_x: 0.2
+#            canvas.before:
+#                Color:
+#                    rgb: root.get_color()
+#                Rectangle:
+#                    pos: self.pos
+#                    size: self.width, self.height
+#            text: app.get_record_count(root.task_index)
 #        Image:
 #            source: 'icons/database-process-icon.png'
 #            source: root.get_icon()
@@ -229,7 +226,7 @@
                         width: 100
                         text: "CSV Query"
             Button:
-                #text: 'SF Execute'
+                #text: 'SF Upload'
                 size_hint_x: None
                 width: self.height * 4
                 on_release: app.add_task('SF_Execute')
