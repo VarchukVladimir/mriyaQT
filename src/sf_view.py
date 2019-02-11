@@ -26,7 +26,6 @@ class TaskView(Screen):
     previous_sobjcet = ''
 
     def __init__(self, **kwargs):
-        print('load sf query')
         super(TaskView, self).__init__(**kwargs)
         self.project = kwargs['project']
         self.task_input = self.project.get_object_from_sql(self.task_sql)
