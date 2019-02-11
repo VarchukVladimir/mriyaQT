@@ -1,3 +1,4 @@
+import StringIO
 from os.path import dirname
 
 __author__ = 'Volodymyr Varchuk'
@@ -15,6 +16,7 @@ __version__ = '1.0'
 
 from kivy.config import Config
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
+# Config.set('kivy','icon','/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT.ico')
 
 import json
 import re
@@ -31,7 +33,7 @@ from kivy.uix.dropdown import DropDown
 from kivy.uix.textinput import TextInput
 from kivy.uix.popup import Popup
 from kivy.uix.settings import SettingsWithSidebar
-from data_connector import RESTConnector
+from data_connector import RESTConnector, MsSQLConnector
 from configparser import ConfigParser
 from data_connector import get_conn_param
 from migration_engine import MigrationWorkflow
@@ -40,9 +42,13 @@ from sf_view import TaskView
 from start_screen import StartScreen
 from review_screen import ReviewScreen
 from sf_execute_view import BatchExecuteView
-from project_utils import Capturing
+from project_utils import Capturing, Timer
 from sys import argv
 from datetime import datetime
+from mssql_view import MSSQL_Query
+import csv
+
+
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
 
@@ -66,7 +72,12 @@ sf_source = None
 config = ConfigParser()
 with open(config_file, 'r') as conf_file:
    config.read_file(conf_file)
-SourceList = config.keys()[1:]
+# print(config.keys()[1:])
+# print([config[key].keys() for key in config.keys()[1:]])
+# exit(0)
+
+SourceList = [{'type':config[key]['type'], 'name':key} for key in config.keys()[1:] ]
+print(SourceList)
 ObjectsMetadata = []
 
 def get_fields_rest(connection, sobject):
@@ -106,7 +117,7 @@ class Project():
             self.project_dir = self.project['project_dir']
             self.project_data_dir = self.project['project_data_dir']
             self.project_name = self.project['project_name']
-            for source_item in SourceList:
+            for source_item in self.get_sources('sf'):
                 if source_item not in self.project['metadata']:
                     self.project['metadata'][source_item]  = {}
 
@@ -121,7 +132,7 @@ class Project():
                     f.writelines('\n' + self.project_file_name)
 
     def get_sobjects(self, connection, force_refresh = False):
-        if connection not in SourceList:
+        if connection not in self.get_sources('sf'):
             return []
         if self.project['metadata'][connection] == {} or force_refresh:
             rest_connector = RESTConnector(get_conn_param(config[connection]))
@@ -150,8 +161,15 @@ class Project():
                 show_object_list.append(object_item)
         return show_object_list
 
-    def get_sources(self):
-        return SourceList
+    def get_sources(self, source_type='sf'):
+        Sources_list = []
+        for sourcelist_item in SourceList:
+            if type(sourcelist_item) == dict:
+                if str(sourcelist_item['type']) == source_type:
+                    Sources_list.append(sourcelist_item['name'])
+            else:
+                Sources_list.append(sourcelist_item)
+        return Sources_list
 
     def get_object_from_sql(self, soql):
         res = None
@@ -195,7 +213,7 @@ class Project():
 
 
 class ComboEdit(TextInput):
-    options = ListProperty(('', ))
+    options = ListProperty()
     def __init__(self, **kw):
         ddn = self.drop_down = DropDown()
         ddn.bind(on_select=self.on_select)
@@ -233,6 +251,23 @@ class TaskListItem(BoxLayout):
         if self.task_status == 'working':
             print(self.task_status)
 
+    def get_text_color(self):
+
+        color = (0.5, 0.5, 0.7, 1)
+        if self.task_type == 'SF_Execute':
+            if self.task_command == 'delete':
+                color = (0.7, 0.5, 0.6, 1)
+            elif self.task_command == 'update':
+                color = (0.6, 0.7, 0.7, 1)
+            else:
+                color = (0.6, 0.6, 0.7, 1)
+        if self.task_type == 'SF_Query':
+            color = (0.6, 0.6, 0.6, 1)
+        if self.task_type == 'MSSQL_Query':
+            color = (0.7, 0.7, 0.6, 1)
+        return color
+
+
     def get_color(self):
         color = (0.3, 0.3, 0.5, 1)
         if self.task_type == 'SF_Execute':
@@ -244,7 +279,20 @@ class TaskListItem(BoxLayout):
                 color = (0.4, 0.4, 0.5, 1)
         if self.task_type == 'SF_Query':
             color = (0.4, 0.4, 0.4, 1)
+        if self.task_type == 'MSSQL_Query':
+            color = (0.5, 0.5, 0.45, 1)
         return color
+
+    def get_icon(self):
+        prefix = p.join('icons','flat_color_icons')
+        if self.task_type == 'SF_Execute':
+            return p.join(prefix, 'upload-48.png')
+        if self.task_type == 'SF_Query':
+            return p.join(prefix, 'icons8-salesforce-48.png')
+
+        if self.task_type == 'MSSQL_Query':
+            return p.join(prefix, 'icons8-sql-48.png')
+        return  p.join(prefix, 'icons8-csv-48.png')
 
 
 class Tasks(Screen):
@@ -281,19 +329,23 @@ class Tasks(Screen):
 
 
 class TaskApp(App):
-
+    # icon = '/home/v/olodymyr/git/dev_MriyaQt/icons/mriyaQT.ico'
     def __init__(self, **kwargs):
         super(TaskApp, self).__init__(**kwargs)
         self.default_project_dir = default_project_dir
         self.default_application_dir = default_application_dir
 
     def build(self):
+        # self.icon = 'icons/mriyaQT.ico'
+        self.icon =  '/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT1.ico'
         self.settings_cls = SettingsWithSidebar
         self.start_screen = StartScreen()
         self.transition = SlideTransition(duration=.35)
         root = ScreenManager(transition=self.transition)
         root.add_widget(self.start_screen)
         self.title = '[{0}]'.format(config_file)
+        print('icon')
+        print(self.get_application_icon())
         return root
 
     def load_tasks(self):
@@ -385,7 +437,7 @@ BoxLayout:
                 task_source=task.get('source'),
                 task_exec=task.get('exec'),
                 project = self.project,
-                sources_list = SourceList
+                sources_list = self.project.get_sources('sf')
             )
             if task.get('source') != '':
                 view.objects_list = self.project.get_standart_sobjects(task.get('source'))
@@ -423,12 +475,24 @@ BoxLayout:
                 task_concurrency=task.get('concurrency') if task.get('concurrency') else '',
                 task_api_type=task.get('api_type'),
                 task_external_id_name=task.get('external_id_name'),
-                sources_list = SourceList,
+                sources_list = self.project.get_sources('sf'),
                 preview_text = '',
                 project=self.project
             )
             view.task_list = [task_name['title'] for task_name in self.tasks.data[:task_index]]
             view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
+        elif task.get('type') == 'MSSQL_Query':
+            view = MSSQL_Query(
+                name=name,
+                task_index=task_index,
+                task_title=task.get('title'),
+                task_sql=task.get('sql'),
+                task_output = task.get('output'),
+                task_source = task.get('source'),
+                sources_list = self.project.get_sources('mssql'),
+                project=self.project
+
+            )
         self.root.add_widget(view)
         self.transition.direction = 'left'
         self.root.current = view.name
@@ -446,6 +510,7 @@ BoxLayout:
         self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':' ', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle','external_id_name':'Id', 'command':'update'})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
+
 
     def refresh_tasks(self):
         data = self.tasks.data
@@ -550,10 +615,14 @@ BoxLayout:
     def get_record_count(self, task_index):
         print(task_index)
         tt = ''
+
         if p.exists(self.tasks.data[task_index]['output']):
             tt = datetime.utcfromtimestamp(p.getmtime(self.tasks.data[task_index]['output'])).strftime('%Y-%m-%d %H:%M:%S.%M')
             print(tt)
-        return str(tt)
+            csv_file = csv.reader(open(self.tasks.data[task_index]['output']))
+            row_count = sum(1 for row in csv_file)
+            return "{0} [{1}]".format(str(tt), row_count)
+        return ''
 
     def cal_exec_workflow(self):
         delete_operation_count = 0
@@ -638,8 +707,22 @@ BoxLayout:
                         cmd_exec[0]['execute']['concurrency'] = task_item['concurrency']
                     if 'batch_size' in task_item.keys():
                         cmd_exec[0]['execute']['batch_size'] = int(task_item['batch_size'])
+                elif task_item['type'] == 'MSSQL_Query':
+                    with Capturing() as output:
+                        timer_ = Timer()
+                        try:
+                            print('Execute MS SQL Query')
+                            mssqlconnector = MsSQLConnector(get_conn_param(config[task_item['source']]))
+                            mssqlconnector.query(task_item['sql'], task_item['output'])
+                            print('Time elapsed: {0}'.format(timer_.stop()))
+                        except:
+                            print 'Unexpected error: ', sys.exc_info()
+                            print('Time elapsed: {0}'.format(timer_.stop()))
+                    for line in output:
+                        if not line.startswith('Wait for job done'):
+                            self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
                 self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
-                import threading
+                # import threading
                 with Capturing() as output:
                     try:
                         wf_task = MigrationWorkflow(src=None, dst=None, workfow=cmd_exec)
