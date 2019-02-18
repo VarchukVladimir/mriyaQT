@@ -1,0 +1,103 @@
+<MSSQL_Query>:
+    #selected_filed: lv_selected_fields
+    BoxLayout:
+        orientation: 'vertical'
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: '48dp'
+            padding: '5dp'
+            canvas:
+                Color:
+                    rgb: .3, .3, .3
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+            Button:
+                text: '<'
+                size_hint_x: None
+                width: self.height
+                on_release: app.go_tasks({'tttt':''})
+            TextInput:
+                id:ti_task_name
+                text: root.task_title
+                on_text: root.on_task_title_changed(self.text)
+            Label:
+                size_hint_x: None
+                width: self.height * 3
+                text:'Run in workflow'
+            CheckBox:
+                id:cb_run_in_workflow
+                active:root.task_exec
+                size_hint_x: None
+                width: self.height
+            Button:
+                text: 'Exec'
+                size_hint_x: None
+                width: self.height
+                on_release: root.exec_item(root.task_index)
+            Button:
+                text: 'Save'
+                size_hint_x: None
+                width: self.height
+                on_release: app.save_task(root.task_index, {'sql':ti_sql.text, 'source':ce_source.text, 'type':'MSSQL_Query', 'output':ti_output.text, 'input':'', 'title':ti_task_name.text, 'exec' :cb_run_in_workflow.active})
+            Button:
+                text: 'X'
+                size_hint_x: None
+                width: self.height
+                on_release: app.del_task(root.task_index)
+        BoxLayout:
+            orientation: 'horizontal'
+            BoxLayout:
+                size_hint_x: 0.3
+                orientation: 'vertical'
+                Label:
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                    text: 'Source:'
+                ComboEdit:
+                    id:ce_source
+                    size_hint_y: None
+                    height: '30dp'
+                    options: [Button(text = str(x), size_hint_y=None, height=30) for x in root.sources_list]
+                    text: 'Select source' if root.task_source == '' else root.task_source
+                    on_text: root.read_controls(app.get_task_names())
+                ListView:
+                    id:dummy
+                    halign: 'left'
+                Label:
+                    text: 'Output file:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+
+            BoxLayout:
+                orientation: 'vertical'
+                Label:
+                    text: 'SQL:'
+                    size_hint_y: None
+                    height:'35dp'
+                    text_size: self.width, None
+                TextInput:
+                    id:ti_sql
+                    multiline: True
+                    text: 'INPUT SQL' if root.task_sql == '' else root.task_sql
+#                    on_text:root.on_sql_texinput_change()
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: None
+                    height:'35dp'
+                    TextInput:
+                        id: ti_output
+                        size_hint_y: None
+                        height: '30dp'
+                        text: root.task_output
+#        BoxLayout:
+#            orientation: 'horizontal'
+#            size_hint_y: None
+#            height:'35dp'
+#            Label:
+#                text: 'Status:'
+#                size_hint_y: None
+#                height:'35dp'
