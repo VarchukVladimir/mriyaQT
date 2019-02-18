@@ -29,6 +29,16 @@ BackupObject = namedtuple('BackupObject',
 
 new_accounts_list_condition = ''
 
+
+def copy_file(in_file, out_file, mode):
+    with open(in_file) as f_in:
+        with open(out_file, mode) as f_out:
+            for line in f_in:
+                f_out.write(line)
+            f_out.write('\n')
+
+
+
 def get_default_user_id():
     config_file = 'config.ini'
     config = ConfigParser()
@@ -262,3 +272,6 @@ class Capturing(list):
         self.extend(self._stringio.getvalue().splitlines())
         del self._stringio    # free up some memory
         sys.stdout = self._stdout
+
+class RecordCountBackground():
+    pass

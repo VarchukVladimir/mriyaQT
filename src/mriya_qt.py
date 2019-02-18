@@ -42,7 +42,7 @@ from sf_view import TaskView
 from start_screen import StartScreen
 from review_screen import ReviewScreen
 from sf_execute_view import BatchExecuteView
-from project_utils import Capturing, Timer
+from project_utils import Capturing, Timer, copy_file
 from sys import argv
 from datetime import datetime
 from mssql_view import MSSQL_Query
@@ -89,9 +89,21 @@ def get_fields_rest(connection, sobject):
     return sorted(fields)
 
 kv_dir = p.join(dirname(dirname(__file__)), 'kv')
-print(listdir(kv_dir))
-for kv in listdir(kv_dir):
-    Builder.load_file(p.join(kv_dir, kv))
+main_kv_file = p.join(kv_dir, 'MriyaQT.kv')
+
+
+def load_kvs():
+    first_kv_file = p.join(kv_dir, 'mriya_qt.kv')
+    with open(main_kv_file, "w") as f:
+        copy_file(first_kv_file, main_kv_file, 'w')
+        for kv in listdir(kv_dir):
+            kv_file = p.join(kv_dir, kv)
+            if kv_file not in [first_kv_file, main_kv_file]:
+                copy_file(kv_file, main_kv_file, 'a')
+
+load_kvs()
+Builder.load_file(main_kv_file)
+
 
 class Project():
     def __init__(self, file_name = default_project_dir):
@@ -336,8 +348,8 @@ class TaskApp(App):
         self.default_application_dir = default_application_dir
 
     def build(self):
-        # self.icon = 'icons/mriyaQT.ico'
-        self.icon =  '/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT1.ico'
+        self.icon = 'icons/mriyaQT.ico'
+        # self.icon =  '/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT1.ico'
         self.settings_cls = SettingsWithSidebar
         self.start_screen = StartScreen()
         self.transition = SlideTransition(duration=.35)
