@@ -76,7 +76,11 @@ with open(config_file, 'r') as conf_file:
 # print([config[key].keys() for key in config.keys()[1:]])
 # exit(0)
 
-SourceList = [{'type':config[key]['type'], 'name':key} for key in config.keys()[1:] ]
+if 'type' in config[config.keys().next()].keys():
+    SourceList = [{'type':config[key]['type'], 'name':key} for key in config.keys()[1:]]
+else:
+    SourceList = [{'type':'sf', 'name':key} for key in config.keys()[1:]]
+
 print(SourceList)
 ObjectsMetadata = []
 
