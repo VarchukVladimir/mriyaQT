@@ -143,9 +143,11 @@ class Project():
         if p.exists(self.project_file_name):
             recent_projetcs_file = 'recent_projects.ini'
             projects = open(recent_projetcs_file).read().splitlines()
-            if self.project_file_name not in projects:
-                with open(recent_projetcs_file, 'a') as f:
-                    f.writelines('\n' + self.project_file_name)
+            if self.project_file_name in projects:
+                projects.remove(self.project_file_name)
+            projects = [self.project_file_name] + projects
+            with open(recent_projetcs_file, 'w') as f:
+                f.writelines('\n'.join(projects))
 
     def get_sobjects(self, connection, force_refresh = False):
         if connection not in self.get_sources('sf'):
@@ -345,7 +347,6 @@ class Tasks(Screen):
 
 
 class TaskApp(App):
-    # icon = '/home/v/olodymyr/git/dev_MriyaQt/icons/mriyaQT.ico'
     def __init__(self, **kwargs):
         super(TaskApp, self).__init__(**kwargs)
         self.default_project_dir = default_project_dir
@@ -353,15 +354,12 @@ class TaskApp(App):
 
     def build(self):
         self.icon = 'icons/mriyaQT.ico'
-        # self.icon =  '/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT1.ico'
         self.settings_cls = SettingsWithSidebar
         self.start_screen = StartScreen()
         self.transition = SlideTransition(duration=.35)
         root = ScreenManager(transition=self.transition)
         root.add_widget(self.start_screen)
         self.title = '[{0}]'.format(config_file)
-        print('icon')
-        print(self.get_application_icon())
         return root
 
     def load_tasks(self):
@@ -585,9 +583,11 @@ BoxLayout:
         if p.exists(project_file):
             recent_projetcs_file = 'recent_projects.ini'
             projects = open(recent_projetcs_file).read().splitlines()
-            if project_file not in projects:
-                with open(recent_projetcs_file, 'a') as f:
-                    f.writelines('\n' + project_file)
+            if project_file in projects:
+                projects.remove(project_file)
+            projects = [project_file] + projects
+            with open(recent_projetcs_file, 'w') as f:
+                f.writelines('\n'.join(projects))
         self.project = Project(project_file)
         self.tasks = Tasks(name='tasks')
         self.load_tasks()

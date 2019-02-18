@@ -6,8 +6,10 @@ from kivy.app import Builder
 from kivy.uix.floatlayout import FloatLayout
 from kivy.uix.popup import Popup
 from os import path as p
+from json import load
 
 recent_projetcs_file = 'recent_projects.ini'
+# recent_projetcs_file_sorted = 'recent_projects_sorted.ini'
 
 class LoadDialog(FloatLayout):
     load = ObjectProperty(None)
@@ -30,7 +32,7 @@ class StartScreen(Screen):
         if p.exists(recent_projetcs_file):
             with open(recent_projetcs_file) as f:
                 recent_projects = f.read().splitlines()
-                self.project_files = recent_projects [:10] + list(reversed(recent_projects[10:]))
+                self.project_files = recent_projects
         else:
             self.project_files = []
         if len(self.project_files) > 0:
