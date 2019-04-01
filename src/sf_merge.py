@@ -22,7 +22,6 @@ from urlparse import urlparse
 
 from utils_xml import parseXMLResultList
 
-
 # XML CONSTANS
 
 RESPONSE_LIST_NAME = 'mergeResponse'
@@ -33,7 +32,7 @@ MERGE_SOAP_REQUEST_HEADERS = {
     u'SOAPAction': 'merge'
 }
 
-#params: sessionid, mergerequest
+# params: sessionid, mergerequest
 # see MERGE_REQUEST_BODY_PART for mergerequest
 MERGE_SOAP_REQUEST_BODY = u"""<?xml version="1.0" encoding="utf-8" ?>
 <soapenv:Envelope 
@@ -53,8 +52,7 @@ MERGE_SOAP_REQUEST_BODY = u"""<?xml version="1.0" encoding="utf-8" ?>
     </soapenv:Body>
 </soapenv:Envelope>"""
 
-
-#params: objname, masterid, mergeidslist
+# params: objname, masterid, mergeidslist
 # see MERGE_IDS_LIST_BODY_PART for mergeidslist
 MERGE_REQUEST_BODY_PART = u"""            <urn:request>
                 <urn:masterRecord xsi:type="urn1:{objname}">
@@ -66,8 +64,8 @@ MERGE_REQUEST_BODY_PART = u"""            <urn:request>
 # params: mergeid
 MERGE_IDS_LIST_BODY_PART = u"<urn:recordToMergeIds>{mergeid}</urn:recordToMergeIds>"
 
-class SoapException(Exception):
 
+class SoapException(Exception):
     default_detail = u'Soap Exception'
 
     def __init__(self, detail=u''):
@@ -98,7 +96,8 @@ class SoapMerge(object):
         @sessionid - Id of authenticated session, must be taken from bulk transaport"""
 
         self.sessionid = sessionid
-        self.soap_url = self.SOAP_URL.format(instance_url='{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(instance_url)), sf_version=version)
+        self.soap_url = self.SOAP_URL.format(
+            instance_url='{uri.scheme}://{uri.netloc}/'.format(uri=urlparse(instance_url)), sf_version=version)
         # self.soap_url = \
         #     self.SOAP_URL.format(instance_url=instance_url, sf_version=version)
 
@@ -124,7 +123,7 @@ class SoapMerge(object):
         response = self._send_merge_request(self.soap_url, merge_soap_request_body)
         self._check_response(response)
         return self._result(parseXMLResultList(response.content, RESPONSE_LIST_NAME))
-        
+
     # HELPERS
 
     @staticmethod
@@ -138,8 +137,8 @@ class SoapMerge(object):
         return requests.post(soap_url,
                              merge_soap_request_body,
                              headers=MERGE_SOAP_REQUEST_HEADERS)
-        
-    def _check_response(self,response):
+
+    def _check_response(self, response):
         res = self._result(parseXMLResultList(response.content, RESPONSE_LIST_NAME))
         if not res:
             raise Exception('Bad soap merge response')
@@ -150,4 +149,3 @@ class SoapMerge(object):
             fault_code = dict_res['faultcode']
             raise SoapException('{message}: {code}'.format(
                 message=fault_string, code=fault_code))
-

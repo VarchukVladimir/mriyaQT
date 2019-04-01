@@ -1,37 +1,26 @@
 __author__ = 'Vladimir Varchuk'
 
-from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ObjectProperty, ListProperty
+from kivy.properties import NumericProperty, StringProperty, BooleanProperty, ListProperty
 from kivy.uix.screenmanager import Screen
 from kivy.app import Builder
-from kivy.uix.button import Button
 from os import path as p
 
 
 class MSSQL_Query(Screen):
     task_index = NumericProperty()
     task_title = StringProperty()
-    # task_content = StringProperty()
     task_sql = StringProperty()
     task_type = StringProperty()
-    # task_input = StringProperty()
     task_output = StringProperty()
     task_source = StringProperty()
     task_exec = BooleanProperty()
-
-    # object_fileds = ObjectProperty()
-    # selected_fileds = ObjectProperty()
-    # objects_list = ListProperty()
     sources_list = ListProperty()
-
-    # previous_source = ''
-    # previous_sobjcet = ''
 
     def __init__(self, **kwargs):
         print('load mssql query')
         super(MSSQL_Query, self).__init__(**kwargs)
         self.project = kwargs['project']
         self.previous_source = self.task_source
-
 
     def get_task_name_string(self, task_names):
         if self.ids.ce_source.text in self.project.get_sources() and self.ids.ce_object.text in self.project.get_sobjects(

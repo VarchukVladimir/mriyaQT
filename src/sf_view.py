@@ -6,6 +6,7 @@ from kivy.app import Builder
 from kivy.uix.button import Button
 from os import path as p
 
+
 class TaskView(Screen):
     task_index = NumericProperty()
     task_title = StringProperty()
@@ -17,8 +18,8 @@ class TaskView(Screen):
     task_source = StringProperty()
     task_exec = BooleanProperty()
 
-    object_fileds = ObjectProperty ()
-    selected_fileds = ObjectProperty ()
+    object_fileds = ObjectProperty()
+    selected_fileds = ObjectProperty()
     objects_list = ListProperty()
     sources_list = ListProperty()
 
@@ -37,7 +38,8 @@ class TaskView(Screen):
         self.set_not_to_refresh = True
         self.objects_list = self.project.get_standart_sobjects(self.task_source)
         if self.task_source in self.sources_list and self.task_input in self.project.get_sobjects(self.task_source):
-            self.source_object_field_list = { field_item.lower():field_item for field_item in self.project.get_sobject_fileds(self.task_source, self.task_input)}
+            self.source_object_field_list = {field_item.lower(): field_item for field_item in
+                                             self.project.get_sobject_fileds(self.task_source, self.task_input)}
             self.object_fileds.adapter.data = self.project.get_sobject_fileds(self.task_source, self.task_input)
             self.on_sql_texinput_change()
             self.refresh_fileds_buttons()
@@ -45,7 +47,8 @@ class TaskView(Screen):
     def on_select_object_fileds_list(self, adapter, *args):
         if self.object_fileds.adapter.selection:
             if self.object_fileds.adapter.selection[0].text.lower() not in self.selection.keys():
-                self.selection[self.object_fileds.adapter.selection[0].text.lower()] = self.object_fileds.adapter.selection[0].text
+                self.selection[self.object_fileds.adapter.selection[0].text.lower()] = \
+                self.object_fileds.adapter.selection[0].text
         self.get_sql_string()
 
     def get_sql_string(self):
@@ -54,13 +57,18 @@ class TaskView(Screen):
         save_where = self.project.get_sql_after_from(save_sql)
         if self.ids.ce_object.text in self.project.get_sobjects(self.ids.ce_source.text):
             if self.selection:
-                sql_string = 'SELECT {fields} FROM {object_name} {after_where}'.format(fields=', '.join([self.selection[selected_item] for selected_item in self.selection]), object_name=self.ids.ce_object.text, after_where=save_where)
+                sql_string = 'SELECT {fields} FROM {object_name} {after_where}'.format(
+                    fields=', '.join([self.selection[selected_item] for selected_item in self.selection]),
+                    object_name=self.ids.ce_object.text, after_where=save_where)
             else:
-                sql_string = 'SELECT {fields} FROM {object_name} {after_where}'.format(fields=' ', object_name=self.ids.ce_object.text, after_where=save_where)
+                sql_string = 'SELECT {fields} FROM {object_name} {after_where}'.format(fields=' ',
+                                                                                       object_name=self.ids.ce_object.text,
+                                                                                       after_where=save_where)
         self.ids.ti_sql.text = sql_string
 
     def get_task_name_string(self, task_names):
-        if self.ids.ce_source.text in self.project.get_sources() and self.ids.ce_object.text in self.project.get_sobjects(self.ids.ce_source.text):
+        if self.ids.ce_source.text in self.project.get_sources() and self.ids.ce_object.text in self.project.get_sobjects(
+                self.ids.ce_source.text):
             new_task_name = self.ids.ce_source.text + '_' + self.ids.ce_object.text
         else:
             new_task_name = 'TaskName'
@@ -82,8 +90,9 @@ class TaskView(Screen):
     def read_controls(self, task_names):
         self.get_task_name_string(task_names)
         if self.ids.ce_source.text <> self.previous_source:
-            if self.ids.ce_source.text in self.project.get_sources() :
-                self.ids.ce_object.options = [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(self.project.get_standart_sobjects(self.ids.ce_source.text))]
+            if self.ids.ce_source.text in self.project.get_sources():
+                self.ids.ce_object.options = [Button(text=str(x), size_hint_y=None, height=30) for x in
+                                              sorted(self.project.get_standart_sobjects(self.ids.ce_source.text))]
                 for option in self.ids.ce_object.options:
                     option.bind(size=option.setter('text_size'))
                 self.previous_source = self.ids.ce_source.text
@@ -91,8 +100,11 @@ class TaskView(Screen):
                 self.ids.ce_object.options = []
                 self.object_fileds.adapter.data = []
         if self.ids.ce_object.text <> self.previous_sobjcet:
-            if self.ids.ce_object.text in self.project.get_sobjects(self.ids.ce_source.text) and self.ids.ce_source.text in self.project.get_sources():
-                self.source_object_field_list = { field_item.lower():field_item for field_item in self.project.get_sobject_fileds(self.ids.ce_source.text, self.ids.ce_object.text )}
+            if self.ids.ce_object.text in self.project.get_sobjects(
+                    self.ids.ce_source.text) and self.ids.ce_source.text in self.project.get_sources():
+                self.source_object_field_list = {field_item.lower(): field_item for field_item in
+                                                 self.project.get_sobject_fileds(self.ids.ce_source.text,
+                                                                                 self.ids.ce_object.text)}
                 self.object_fileds.adapter.data = sorted(self.source_object_field_list.values())
                 self.object_fileds.adapter.bind(on_selection_change=self.on_select_object_fileds_list)
                 self.previous_sobjcet = self.ids.ce_object.text
@@ -147,11 +159,9 @@ Button:
     size_hint: {x}, .15
     on_release:root.parent.parent.parent.parent.parent.on_release_field_button(self.text)
     on_press:root.parent.parent.parent.parent.parent.on_press_field_button(self.text)
-'''.format(sql_item_lower=field_item.lower(), sql_item=field_item, x=(text_widht/layout_size[0]))))
+'''.format(sql_item_lower=field_item.lower(), sql_item=field_item, x=(text_widht / layout_size[0]))))
         self.set_not_to_refresh = True
         self.pressed_filed_list_button = ''
-
-
 
     def on_sql_texinput_change(self):
         # print(self.ids.ti_sql.text)

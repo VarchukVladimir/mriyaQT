@@ -7,6 +7,7 @@ from kivy.app import Builder
 from os import path as p
 from kivy.core.window import Window
 
+
 class SQLView(Screen):
     task_index = NumericProperty()
     task_title = StringProperty()
@@ -17,8 +18,8 @@ class SQLView(Screen):
     task_output = StringProperty()
     task_source = StringProperty()
     task_exec = BooleanProperty()
-    task_list = ObjectProperty ()
-    task_filed_list = ObjectProperty ()
+    task_list = ObjectProperty()
+    task_filed_list = ObjectProperty()
     task_ouputs_dict = DictProperty()
     selected_objects = ObjectProperty()
 
@@ -27,11 +28,13 @@ class SQLView(Screen):
         self.task_list.adapter.bind(on_selection_change=self.on_task_list_click)
         self.save_task_list = self.task_list.adapter.data[:]
         self.project = kwargs['project']
-        input_task = [split_item<>'' and split_item  for split_item in self.task_input.split(',')]
-        if self.task_input=='' or self.task_input is None:
+        input_task = [split_item <> '' and split_item for split_item in self.task_input.split(',')]
+        if self.task_input == '' or self.task_input is None:
             self.selection = {}
         else:
-            self.selection = {p.basename(input_task_item.lower()).split('.')[0]:[input_task_item, input_task_item.lower()] for input_task_item in input_task}
+            self.selection = {
+            p.basename(input_task_item.lower()).split('.')[0]: [input_task_item, input_task_item.lower()] for
+            input_task_item in input_task}
         if self.selection:
             self.refresh_input_task_buttons()
         Window.bind(on_key_down=self.key_callback)
@@ -44,9 +47,9 @@ class SQLView(Screen):
 
     def key_callback(self, keyboard, keycode, text, modifiers, a):
         self.local_modifiers = []
-        if keycode==308:
+        if keycode == 308:
             self.local_modifiers.append('alt')
-        elif keycode==305:
+        elif keycode == 305:
             self.local_modifiers.append('ctrl')
 
     def on_text_input_objects(self):
@@ -54,12 +57,12 @@ class SQLView(Screen):
         inputs_list = save_inputs.split(',')
         new_selection = {}
         for input_task_item in inputs_list:
-            if len(p.basename(input_task_item.lower()).split('.'))>1:
+            if len(p.basename(input_task_item.lower()).split('.')) > 1:
                 if p.basename(input_task_item.lower()).split('.')[1] == 'csv':
-                    new_selection[p.basename(input_task_item.lower()).split('.')[0]] = [input_task_item, input_task_item.lower()]
+                    new_selection[p.basename(input_task_item.lower()).split('.')[0]] = [input_task_item,
+                                                                                        input_task_item.lower()]
         self.selection = new_selection
         self.refresh_input_task_buttons(refresh_source='TextInput')
-
 
     def refresh_input_task_buttons(self, refresh_source=None):
         self.ids.st_layout.clear_widgets()
@@ -75,7 +78,7 @@ Button:
     size_hint_y: None
     size_hint: {x}, .15
     on_release:root.parent.parent.parent.parent.parent.on_release_input_task_button(self.text)
-'''.format(sql_item_lower=field_item, sql_item=field_item, x=(text_widht/layout_size[0]))))
+'''.format(sql_item_lower=field_item, sql_item=field_item, x=(text_widht / layout_size[0]))))
         if not refresh_source:
             ti_input_objects_list = []
             for selection_value in self.selection.values():
@@ -83,7 +86,8 @@ Button:
                     continue
                 else:
                     ti_input_objects_list.append(selection_value)
-            self.ids.ti_input_objects.text = ', '.join([ selection_values[0] for selection_values in ti_input_objects_list])
+            self.ids.ti_input_objects.text = ', '.join(
+                [selection_values[0] for selection_values in ti_input_objects_list])
 
     def on_task_list_click(self, d):
         if self.task_list.adapter.selection:
@@ -99,9 +103,11 @@ Button:
             self.refresh_input_task_buttons()
             self.fields_selected_task = []
             for tasks in self.project.project['workflow']:
-                if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
+                if tasks['type'] == 'SF_Query' and self.task_list.adapter.selection[0].text.lower() == tasks[
+                    'title'].lower():
                     self.fields_selected_task = self.project.get_fields_from_sql(tasks['sql'])
-                if (tasks['type'] == 'SQL_Query' or tasks['type'] == 'SF_Execute' or tasks['type'] == 'MSSQL_Query') and self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
+                if (tasks['type'] == 'SQL_Query' or tasks['type'] == 'SF_Execute' or tasks['type'] == 'MSSQL_Query') and \
+                        self.task_list.adapter.selection[0].text.lower() == tasks['title'].lower():
                     self.fields_selected_task = self.project._get_fields_from_csv(tasks['output'])
 
             self.field_list.adapter.data = self.fields_selected_task
@@ -109,7 +115,7 @@ Button:
             if 'ctrl' in self.local_modifiers:
                 cr, cl = self.ids.ti_sql.cursor
                 insert_text = 'SELECT  FROM {table_name}'.format(table_name=self.task_list.adapter.selection[0].text)
-                self.ids.ti_sql.insert_text( insert_text )
+                self.ids.ti_sql.insert_text(insert_text)
                 self.ids.ti_sql.cursor = (cr + 7, cl)
 
     def on_task_name_change(self, task_names):

@@ -9,6 +9,8 @@ from os import path as p
 from json import load
 
 recent_projetcs_file = 'recent_projects.ini'
+
+
 # recent_projetcs_file_sorted = 'recent_projects_sorted.ini'
 
 class LoadDialog(FloatLayout):
@@ -27,6 +29,7 @@ class StartScreen(Screen):
     loadfile = ObjectProperty(None)
     savefile = ObjectProperty(None)
     text_input = ObjectProperty(None)
+
     def __init__(self, **kwargs):
         super(Screen, self).__init__(**kwargs)
         if p.exists(recent_projetcs_file):

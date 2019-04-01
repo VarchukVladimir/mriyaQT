@@ -1,7 +1,6 @@
 __author__ = 'Volodymyr'
 __email__ = 'vladimir.varchuk@rackspace.com'
 
-
 __author__ = 'Vladimir Varchuk'
 # __all__ = ('SQLView')
 
@@ -10,6 +9,7 @@ from kivy.uix.screenmanager import Screen
 from kivy.uix.button import Button
 from kivy.app import Builder
 from os import path as p
+
 
 class BatchExecuteView(Screen):
     task_index = NumericProperty()
@@ -23,8 +23,8 @@ class BatchExecuteView(Screen):
     task_command = StringProperty()
     task_source = StringProperty()
     task_exec = BooleanProperty()
-    task_list = ListProperty ()
-    task_filed_list = ObjectProperty ()
+    task_list = ListProperty()
+    task_filed_list = ObjectProperty()
     task_ouputs_dict = DictProperty()
     task_external_id_name = StringProperty()
     selected_objects = ObjectProperty()
@@ -50,15 +50,15 @@ class BatchExecuteView(Screen):
         inputs_list = save_inputs.split(',')
         new_selection = {}
         for input_task_item in inputs_list:
-            if len(p.basename(input_task_item.lower()).split('.'))>1:
+            if len(p.basename(input_task_item.lower()).split('.')) > 1:
                 if p.basename(input_task_item.lower()).split('.')[1] == 'csv':
-                    new_selection[p.basename(input_task_item.lower()).split('.')[0]] = [input_task_item, input_task_item.lower()]
+                    new_selection[p.basename(input_task_item.lower()).split('.')[0]] = [input_task_item,
+                                                                                        input_task_item.lower()]
         self.selection = new_selection
         self.refresh_input_task_buttons(refresh_source='TextInput')
 
     def get_csv_fields(self, file_name):
         return self.project._get_fields_from_csv(file_name)
-
 
     def refresh_input_task_buttons(self, refresh_source=None):
         pass
@@ -88,13 +88,13 @@ class BatchExecuteView(Screen):
         pass
 
     def refresh_fileds_buttons(self, d):
-            self.ids.st_layout.clear_widgets()
-            if self.selection:
-                for field_item in self.selection.values():
-                    layout_size = self.ids.st_layout.size
-                    text_widht = len(field_item) * 9 + 20
+        self.ids.st_layout.clear_widgets()
+        if self.selection:
+            for field_item in self.selection.values():
+                layout_size = self.ids.st_layout.size
+                text_widht = len(field_item) * 9 + 20
 
-                    self.ids.st_layout.add_widget(Builder.load_string('''
+                self.ids.st_layout.add_widget(Builder.load_string('''
     Button:
         id: btn_{sql_item_lower}
         text: '{sql_item}'
@@ -112,7 +112,8 @@ class BatchExecuteView(Screen):
                 self.preview_source_file_name = task['output']
                 self.ids.ti_text_input_source_file_name.text = task['output']
                 if self.ids.ce_exec_type.text == 'insert':
-                    self.ids.ce_external_id_name.options = [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(self.project._get_fields_from_csv(task['output']))]
+                    self.ids.ce_external_id_name.options = [Button(text=str(x), size_hint_y=None, height=30) for x in
+                                                            sorted(self.project._get_fields_from_csv(task['output']))]
                 else:
                     self.ids.ce_external_id_name.text = 'Id'
 
@@ -131,8 +132,9 @@ class BatchExecuteView(Screen):
 
     def read_controls(self, task_names):
         if self.ids.ce_source.text <> self.previous_source:
-            if self.ids.ce_source.text in self.project.get_sources() :
-                self.ids.ce_object.options = [Button(text = str(x), size_hint_y=None, height=30) for x in sorted(self.project.get_standart_sobjects(self.ids.ce_source.text))]
+            if self.ids.ce_source.text in self.project.get_sources():
+                self.ids.ce_object.options = [Button(text=str(x), size_hint_y=None, height=30) for x in
+                                              sorted(self.project.get_standart_sobjects(self.ids.ce_source.text))]
                 for option in self.ids.ce_object.options:
                     option.bind(size=option.setter('text_size'))
                 self.previous_source = self.ids.ce_source.text

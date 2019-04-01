@@ -15,6 +15,7 @@ Application for extracting and querying SalesForce data using SQL (SQLite engine
 __version__ = '1.0'
 
 from kivy.config import Config
+
 Config.set('input', 'mouse', 'mouse,multitouch_on_demand')
 # Config.set('kivy','icon','/home/volodymyr/git/dev_MriyaQt/icons/mriyaQT.ico')
 
@@ -48,20 +49,20 @@ from datetime import datetime
 from mssql_view import MSSQL_Query
 import csv
 
-
 default_project_dir = p.join('/home/volodymyr/work', 'test_exec', 'test_exec.mpr')
 default_application_dir = p.join(p.expanduser('~'), 'work')
 
 standart_object_list_file = p.join('StandartObjectList.ini')
 
-StandartObjectList = ['Account', 'Contact', 'AccountContactRole', 'Lead', 'Opportunity', 'Task', 'Event', 'Note', 'Attachment',
-    'Campaign', 'CampaignMember', 'User', 'AccountTeamMember']
+StandartObjectList = ['Account', 'Contact', 'AccountContactRole', 'Lead', 'Opportunity', 'Task', 'Event', 'Note',
+                      'Attachment',
+                      'Campaign', 'CampaignMember', 'User', 'AccountTeamMember']
 
 if p.exists(standart_object_list_file):
     jj = json.load(open(standart_object_list_file))
     StandartObjectList = jj[0]['StandartObjectList']
 
-StandartObjectList_uppercase = [ object_item.upper() for object_item in StandartObjectList]
+StandartObjectList_uppercase = [object_item.upper() for object_item in StandartObjectList]
 
 ObjectsList = []
 
@@ -71,18 +72,19 @@ sf_source = None
 
 config = ConfigParser()
 with open(config_file, 'r') as conf_file:
-   config.read_file(conf_file)
+    config.read_file(conf_file)
 # print(config.keys()[1:])
 # print([config[key].keys() for key in config.keys()[1:]])
 # exit(0)
 
 if 'type' in config[config.keys()[1]].keys():
-    SourceList = [{'type':config[key]['type'], 'name':key} for key in config.keys()[1:]]
+    SourceList = [{'type': config[key]['type'], 'name': key} for key in config.keys()[1:]]
 else:
-    SourceList = [{'type':'sf', 'name':key} for key in config.keys()[1:]]
+    SourceList = [{'type': 'sf', 'name': key} for key in config.keys()[1:]]
 
 print(SourceList)
 ObjectsMetadata = []
+
 
 def get_fields_rest(connection, sobject):
     rc = RESTConnector(get_conn_param(config[connection]))
@@ -91,6 +93,7 @@ def get_fields_rest(connection, sobject):
     for field_item in req_res[0]['fields']:
         fields.append(field_item['name'])
     return sorted(fields)
+
 
 kv_dir = p.join(dirname(dirname(__file__)), 'kv')
 main_kv_file = p.join(kv_dir, 'MriyaQT.kv')
@@ -105,24 +108,26 @@ def load_kvs():
             if kv_file not in [first_kv_file, main_kv_file]:
                 copy_file(kv_file, main_kv_file, 'a')
 
+
 load_kvs()
 Builder.load_file(main_kv_file)
 
 
 class Project():
-    def __init__(self, file_name = default_project_dir):
+    def __init__(self, file_name=default_project_dir):
         if not p.exists(file_name):
             mkdir(file_name)
-            mkdir( p.join(file_name, 'data'))
-            self.project_file_name = p.join(p.join( p.dirname(file_name), p.basename(file_name)), p.basename(file_name) + '.mpr')
+            mkdir(p.join(file_name, 'data'))
+            self.project_file_name = p.join(p.join(p.dirname(file_name), p.basename(file_name)),
+                                            p.basename(file_name) + '.mpr')
             self.project_dir = file_name
             self.project_data_dir = p.join(self.project_dir, 'data')
             self.project_name = p.basename(file_name)
             self.project = {
-                'metadata':{
-                    source_name:{} for source_name in config.keys()},
-                'workflow':[],
-                'project_name': self.project_name ,
+                'metadata': {
+                    source_name: {} for source_name in config.keys()},
+                'workflow': [],
+                'project_name': self.project_name,
                 'project_data_dir': self.project_data_dir,
                 'project_dir': self.project_dir
             }
@@ -135,7 +140,7 @@ class Project():
             self.project_name = self.project['project_name']
             for source_item in self.get_sources('sf'):
                 if source_item not in self.project['metadata']:
-                    self.project['metadata'][source_item]  = {}
+                    self.project['metadata'][source_item] = {}
 
     def save(self):
         json.dump(self.project, open(self.project_file_name, 'w'))
@@ -149,13 +154,15 @@ class Project():
             with open(recent_projetcs_file, 'w') as f:
                 f.writelines('\n'.join(projects))
 
-    def get_sobjects(self, connection, force_refresh = False):
+    def get_sobjects(self, connection, force_refresh=False):
         if connection not in self.get_sources('sf'):
             return []
         if self.project['metadata'][connection] == {} or force_refresh:
             rest_connector = RESTConnector(get_conn_param(config[connection]))
             req_res = json.loads('[{}]'.format(rest_connector.bulk.rest_request('sobjects')))[0]['sobjects']
-            self.project['metadata'][connection] = { (type(sobject['name']) is str or type(sobject['name']) is unicode) and sobject['name']:{} for sobject in req_res}
+            self.project['metadata'][connection] = {
+            (type(sobject['name']) is str or type(sobject['name']) is unicode) and sobject['name']: {} for sobject in
+            req_res}
         return sorted(self.project['metadata'][connection].keys())
 
     def get_sobject_fileds(self, connection, sobject, force_refresh=False):
@@ -163,14 +170,15 @@ class Project():
             self.get_sobjects(connection)
         if force_refresh or self.project['metadata'][connection][sobject] == {}:
             rest_connector = RESTConnector(get_conn_param(config[connection]))
-            req_res = json.loads('[{}]'.format(rest_connector.bulk.rest_request('sobjects/{}/describe'.format(sobject))))
+            req_res = json.loads(
+                '[{}]'.format(rest_connector.bulk.rest_request('sobjects/{}/describe'.format(sobject))))
             fields = []
             for field_item in req_res[0]['fields']:
                 fields.append(field_item['name'])
             self.project['metadata'][connection][sobject] = sorted(fields)
         return sorted(self.project['metadata'][connection][sobject])
 
-    def get_standart_sobjects(self, connection, force_refresh = False):
+    def get_standart_sobjects(self, connection, force_refresh=False):
         objects_list = self.get_sobjects(connection, force_refresh=force_refresh)
         show_object_list = []
 
@@ -226,12 +234,13 @@ class Project():
         field_names = []
         if p.exists(csv_file):
             with open(csv_file) as f:
-                field_names = f.readline().replace('"','').strip().split(',')
+                field_names = f.readline().replace('"', '').strip().split(',')
         return field_names
 
 
 class ComboEdit(TextInput):
     options = ListProperty()
+
     def __init__(self, **kw):
         ddn = self.drop_down = DropDown()
         ddn.bind(on_select=self.on_select)
@@ -261,6 +270,7 @@ class TaskListItem(BoxLayout):
     task_type = StringProperty()
     task_exec = BooleanProperty()
     task_status = StringProperty()
+
     def __init__(self, **kwargs):
         del kwargs['index']
         super(TaskListItem, self).__init__(**kwargs)
@@ -285,7 +295,6 @@ class TaskListItem(BoxLayout):
             color = (0.7, 0.7, 0.6, 1)
         return color
 
-
     def get_color(self):
         color = (0.3, 0.3, 0.5, 1)
         if self.task_type == 'SF_Execute':
@@ -302,7 +311,7 @@ class TaskListItem(BoxLayout):
         return color
 
     def get_icon(self):
-        prefix = p.join('icons','flat_color_icons')
+        prefix = p.join('icons', 'flat_color_icons')
         if self.task_type == 'SF_Execute':
             return p.join(prefix, 'upload-48.png')
         if self.task_type == 'SF_Query':
@@ -310,11 +319,12 @@ class TaskListItem(BoxLayout):
 
         if self.task_type == 'MSSQL_Query':
             return p.join(prefix, 'icons8-sql-48.png')
-        return  p.join(prefix, 'icons8-csv-48.png')
+        return p.join(prefix, 'icons8-csv-48.png')
 
 
 class Tasks(Screen):
     data = ListProperty()
+
     def args_converter(self, row_index, item):
         # if item is SF_Execute type it may have command key
         if 'command' in item.keys():
@@ -322,27 +332,27 @@ class Tasks(Screen):
                 return {
                     'task_index': row_index,
                     'task_title': item['title'],
-                    'task_type':item['type'],
-                    'task_command':item['command'],
-                    'task_exec':item['exec'],
-                    'task_status':item['status']
+                    'task_type': item['type'],
+                    'task_command': item['command'],
+                    'task_exec': item['exec'],
+                    'task_status': item['status']
                 }
             else:
                 return {
                     'task_index': row_index,
                     'task_title': item['title'],
-                    'task_type':item['type'],
-                    'task_command':item['command'],
-                    'task_exec':item['exec'],
-                    'task_status':item['status']
+                    'task_type': item['type'],
+                    'task_command': item['command'],
+                    'task_exec': item['exec'],
+                    'task_status': item['status']
                 }
         else:
             return {
                 'task_index': row_index,
                 'task_title': item['title'],
-                'task_type':item['type'],
-                'task_exec':item['exec'],
-                'task_status':item['status']
+                'task_type': item['type'],
+                'task_exec': item['exec'],
+                'task_status': item['status']
             }
 
 
@@ -385,9 +395,9 @@ BoxLayout:
             on_release: app.popup.dismiss()
             '''.format()
                 self.popup = Popup(title='Delete task',
-                                           content=Builder.load_string(content_str),
-                                           size_hint=(None, None), size=(400, 150),
-                                           auto_dismiss=False)
+                                   content=Builder.load_string(content_str),
+                                   size_hint=(None, None), size=(400, 150),
+                                   auto_dismiss=False)
                 self.popup.open()
             else:
                 self.do_save()
@@ -416,12 +426,12 @@ BoxLayout:
             on_release: app.detete_task (int({task_index}), 'No')
         '''.format(task_name=self.tasks.data[task_index]['title'], task_index=task_index)
         self.popup = Popup(title='Delete task',
-                      content=Builder.load_string(content_str),
-                      size_hint=(None, None), size=(400, 150),
-                      auto_dismiss=False)
+                           content=Builder.load_string(content_str),
+                           size_hint=(None, None), size=(400, 150),
+                           auto_dismiss=False)
         self.popup.open()
 
-    def detete_task(self,task_index, answer):
+    def detete_task(self, task_index, answer):
         self.popup.dismiss()
         if answer == 'Yes':
             del self.tasks.data[task_index]
@@ -450,8 +460,8 @@ BoxLayout:
                 task_output=task.get('output'),
                 task_source=task.get('source'),
                 task_exec=task.get('exec'),
-                project = self.project,
-                sources_list = self.project.get_sources('sf')
+                project=self.project,
+                sources_list=self.project.get_sources('sf')
             )
             if task.get('source') != '':
                 view.objects_list = self.project.get_standart_sobjects(task.get('source'))
@@ -470,7 +480,8 @@ BoxLayout:
                 project=self.project
             )
             view.task_list.adapter.data = [task_name['title'] for task_name in self.tasks.data[:task_index]]
-            view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
+            view.task_ouputs_dict = {task_name['title']: task_name['output'] for task_name in
+                                     self.tasks.data[:task_index]}
         elif task.get('type') == 'SF_Execute':
             print('execute type')
             view = BatchExecuteView(
@@ -489,21 +500,22 @@ BoxLayout:
                 task_concurrency=task.get('concurrency') if task.get('concurrency') else '',
                 task_api_type=task.get('api_type'),
                 task_external_id_name=task.get('external_id_name'),
-                sources_list = self.project.get_sources('sf'),
-                preview_text = '',
+                sources_list=self.project.get_sources('sf'),
+                preview_text='',
                 project=self.project
             )
             view.task_list = [task_name['title'] for task_name in self.tasks.data[:task_index]]
-            view.task_ouputs_dict = {task_name['title']:task_name['output'] for task_name in self.tasks.data[:task_index]}
+            view.task_ouputs_dict = {task_name['title']: task_name['output'] for task_name in
+                                     self.tasks.data[:task_index]}
         elif task.get('type') == 'MSSQL_Query':
             view = MSSQL_Query(
                 name=name,
                 task_index=task_index,
                 task_title=task.get('title'),
                 task_sql=task.get('sql'),
-                task_output = task.get('output'),
-                task_source = task.get('source'),
-                sources_list = self.project.get_sources('mssql'),
+                task_output=task.get('output'),
+                task_source=task.get('source'),
+                sources_list=self.project.get_sources('mssql'),
                 project=self.project
 
             )
@@ -514,17 +526,18 @@ BoxLayout:
     def add_task(self, task_type):
         task_names_index = []
         projectname = self.project.project_name
-        for task_name_item in [ task_item['title'] for task_item in self.tasks.data ]:
+        for task_name_item in [task_item['title'] for task_item in self.tasks.data]:
             if task_name_item.startswith(projectname) and task_name_item[len(projectname):].isdigit():
                 task_names_index.append(task_name_item)
         max_index = 1
         if task_names_index:
             max_index = int(max(task_names_index)[len(projectname):]) + 1
         new_title_name = '{0}{1:02d}'.format(projectname, max_index)
-        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql':'', 'type':task_type, 'input':' ', 'output': p.join(self.project.project_data_dir, new_title_name + '.csv') , 'source':'', 'exec':False, 'status':'idle','external_id_name':'Id', 'command':'update'})
+        self.tasks.data.append({'title': new_title_name, 'content': '', 'sql': '', 'type': task_type, 'input': ' ',
+                                'output': p.join(self.project.project_data_dir, new_title_name + '.csv'), 'source': '',
+                                'exec': False, 'status': 'idle', 'external_id_name': 'Id', 'command': 'update'})
         task_index = len(self.tasks.data) - 1
         self.edit_task(task_index)
-
 
     def refresh_tasks(self):
         data = self.tasks.data
@@ -540,13 +553,15 @@ BoxLayout:
 
     def up_task(self, task_index):
         if task_index != 0:
-            self.tasks.data[task_index], self.tasks.data[task_index - 1] = self.tasks.data[task_index - 1], self.tasks.data[task_index]
+            self.tasks.data[task_index], self.tasks.data[task_index - 1] = self.tasks.data[task_index - 1], \
+                                                                           self.tasks.data[task_index]
         self.save_tasks()
         self.refresh_tasks()
 
     def down_task(self, task_index):
         if task_index != len(self.tasks.data) - 1:
-            self.tasks.data[task_index], self.tasks.data[task_index + 1] = self.tasks.data[task_index + 1], self.tasks.data[task_index]
+            self.tasks.data[task_index], self.tasks.data[task_index + 1] = self.tasks.data[task_index + 1], \
+                                                                           self.tasks.data[task_index]
         self.save_tasks()
         self.refresh_tasks()
 
@@ -554,8 +569,8 @@ BoxLayout:
         return [task_item['title'] for task_item in self.tasks.data]
 
     def save_task(self, task_index, data):
-        existing_names = [ title_name['title']  for i, title_name in enumerate(self.tasks.data) if i<>task_index]
-        if data['title'] in  existing_names:
+        existing_names = [title_name['title'] for i, title_name in enumerate(self.tasks.data) if i <> task_index]
+        if data['title'] in existing_names:
             print ('name already exists')
             content_str = '''
 BoxLayout:
@@ -596,10 +611,11 @@ BoxLayout:
         self.root.current = self.tasks.name
         self.title = 'MriyaQT - {0} :: [{1}]'.format(p.basename(project_file).split('.')[0], config_file)
 
-    def go_to_review_screen(self, output_path, errors_only = False):
+    def go_to_review_screen(self, output_path, errors_only=False):
         o_path = output_path
         if errors_only:
-            o_path = '.'.join( output_path.split('.')[:-2] + [output_path.split('.')[-2] + 'errors'] + [output_path.split('.')[-1] ])
+            o_path = '.'.join(
+                output_path.split('.')[:-2] + [output_path.split('.')[-2] + 'errors'] + [output_path.split('.')[-1]])
         review_screen = ReviewScreen(name=p.basename(o_path), file_name=o_path, previous_screen=self.root.current)
         if self.root.has_screen(review_screen.name):
             self.root.remove_widget(self.root.get_screen(review_screen.name))
@@ -617,11 +633,11 @@ BoxLayout:
 
     def build_config(self, config):
         config.setdefaults('mriya', {
-            'batch_size':5000,
-            'concurrency':'Parallel',
-            'api_type':'BulkAPI',
-            'ctrl_key':305,
-            'alt_key':308})
+            'batch_size': 5000,
+            'concurrency': 'Parallel',
+            'api_type': 'BulkAPI',
+            'ctrl_key': 305,
+            'alt_key': 308})
 
     def build_settings(self, settings):
         settings.add_json_panel('Mriya settings',
@@ -633,7 +649,8 @@ BoxLayout:
         tt = ''
 
         if p.exists(self.tasks.data[task_index]['output']):
-            tt = datetime.utcfromtimestamp(p.getmtime(self.tasks.data[task_index]['output'])).strftime('%Y-%m-%d %H:%M:%S.%M')
+            tt = datetime.utcfromtimestamp(p.getmtime(self.tasks.data[task_index]['output'])).strftime(
+                '%Y-%m-%d %H:%M:%S.%M')
             print(tt)
             csv_file = csv.reader(open(self.tasks.data[task_index]['output']))
             row_count = sum(1 for row in csv_file)
@@ -661,11 +678,11 @@ BoxLayout:
         Button:
             text: "No"
             on_release: app.exec_workflow (False)
-                        '''.format(del_count=delete_operation_count, end='s' if delete_operation_count>1 else '')
+                        '''.format(del_count=delete_operation_count, end='s' if delete_operation_count > 1 else '')
             self.popup = Popup(title='Delete operation in SalesForce',
-                           content=Builder.load_string(content_str),
-                           size_hint=(None, None), size=(400, 150),
-                           auto_dismiss=False)
+                               content=Builder.load_string(content_str),
+                               size_hint=(None, None), size=(400, 150),
+                               auto_dismiss=False)
             self.popup.open()
         else:
             self.exec_workflow(True)
@@ -678,46 +695,47 @@ BoxLayout:
             return
 
         for task_item in self.tasks.data:
-            if task_item['exec'] and  (task_item['type'] == 'SF_Query' or task_item['type'] == 'SF_Execute') and task_item['source'] not in connection_dict.keys():
+            if task_item['exec'] and (task_item['type'] == 'SF_Query' or task_item['type'] == 'SF_Execute') and \
+                    task_item['source'] not in connection_dict.keys():
                 connection_dict[task_item['source']] = RESTConnector(get_conn_param(config[task_item['source']]))
         for task_item in self.tasks.data:
             cmd_exec = []
             if task_item['exec']:
                 task_item['status'] = 'working'
                 save_title = task_item['title']
-                task_item['title'] =  '{} [working]'.format(task_item['title'])
+                task_item['title'] = '{} [working]'.format(task_item['title'])
                 self.refresh_tasks()
                 if task_item['type'] == 'SQL_Query':
                     cmd_exec = [{
-                        '':{'input_data':[ input_path.strip() for input_path in task_item['input'].split(',')],
-                                'sql':task_item['sql'],
-                                'output_data':open(task_item['output'], 'w'),
-                                'tag':None,
-                                'message':''
-                                }
+                        '': {'input_data': [input_path.strip() for input_path in task_item['input'].split(',')],
+                             'sql': task_item['sql'],
+                             'output_data': open(task_item['output'], 'w'),
+                             'tag': None,
+                             'message': ''
+                             }
                     }]
                 elif task_item['type'] == 'SF_Query':
                     cmd_exec = [{
-                    'execute':{'input_data':task_item['sql'],
-                               'connector':connection_dict[task_item['source']],
-                               'object':self.project.get_object_from_sql(task_item['sql']).strip(),
-                               'command':'query',
-                               'tag':None,
-                               'output_data':task_item['output'],
-                               'message':''
-                               }
+                        'execute': {'input_data': task_item['sql'],
+                                    'connector': connection_dict[task_item['source']],
+                                    'object': self.project.get_object_from_sql(task_item['sql']).strip(),
+                                    'command': 'query',
+                                    'tag': None,
+                                    'output_data': task_item['output'],
+                                    'message': ''
+                                    }
                     }]
                 elif task_item['type'] == 'SF_Execute':
                     cmd_exec = [{
-                    'execute':{'input_data':task_item['input'].strip(),
-                               'connector':connection_dict[task_item['source']],
-                               'object':task_item['sql'],
-                               'command':task_item['command'],
-                               'exteranl_id_name':[task_item['external_id_name']],
-                               'tag':None,
-                               'output_data':task_item['output'],
-                               'message':''
-                               }
+                        'execute': {'input_data': task_item['input'].strip(),
+                                    'connector': connection_dict[task_item['source']],
+                                    'object': task_item['sql'],
+                                    'command': task_item['command'],
+                                    'exteranl_id_name': [task_item['external_id_name']],
+                                    'tag': None,
+                                    'output_data': task_item['output'],
+                                    'message': ''
+                                    }
                     }]
                     if 'concurrency' in task_item.keys():
                         cmd_exec[0]['execute']['concurrency'] = task_item['concurrency']
@@ -736,8 +754,10 @@ BoxLayout:
                             print('Time elapsed: {0}'.format(timer_.stop()))
                     for line in output:
                         if not line.startswith('Wait for job done'):
-                            self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
-                self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n********** {} ***********'.format(task_item['title'])
+                            self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen(
+                                'tasks').ids.ti_log.text + '\n' + line
+                self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen(
+                    'tasks').ids.ti_log.text + '\n********** {} ***********'.format(task_item['title'])
                 # import threading
                 with Capturing() as output:
                     try:
@@ -747,11 +767,11 @@ BoxLayout:
                         print "Unexpected error:", sys.exc_info()
                 for line in output:
                     if not line.startswith('Wait for job done'):
-                        self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen('tasks').ids.ti_log.text +'\n'+ line
+                        self.root.get_screen('tasks').ids.ti_log.text = self.root.get_screen(
+                            'tasks').ids.ti_log.text + '\n' + line
                 task_item['status'] = 'idle'
                 task_item['title'] = save_title
                 self.refresh_tasks()
-
 
     def run_task__(self, cmd_exec):
         print('run in thread')
@@ -763,6 +783,7 @@ BoxLayout:
             wf_task.execute_workflow()
         except:
             print "Unexpected error:", sys.exc_info()
+
 
 if __name__ == '__main__':
     TaskApp(title="Mriya Query Tool").run()

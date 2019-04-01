@@ -9,7 +9,6 @@ Application for extracting and querying SalesForce data using SQL (SQLite engine
 
 '''
 
-
 from sys import argv
 from os import path as p
 import json
@@ -25,4 +24,4 @@ if len(argv) == 2:
                 wf_item['external_id_name'] = 'Id'
         json.dump(project_data, open(project_file_name, 'w'))
 else:
-    print ( 'You must specify one project file to convert')
+    print ('You must specify one project file to convert')

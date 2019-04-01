@@ -3,7 +3,6 @@ import tempfile
 __author__ = 'Volodymyr Varchuk'
 __email__ = "vladimir.varchuk@rackspace.com"
 
-
 import logging
 from project_utils import Timer, check_result, to_csv_from_dict
 from json import load, dump
@@ -20,6 +19,7 @@ JT_UPDATE = 'update'
 JT_UPSERT = 'upsert'
 JT_DELETE = 'delete'
 
+
 class BatchDistributor:
     def __init__(self, ids_list, split_size, max_threads):
         self.ids_list = sorted(ids_list)
@@ -28,7 +28,7 @@ class BatchDistributor:
 
     def distribute_ids(self):
         record_count = 0
-        split_list=[]
+        split_list = []
         for record_id in self.ids_list:
             if record_count == 0:
                 begein_interval = str(record_id)
@@ -45,7 +45,6 @@ class MigrationWorkflow:
         self.dst = dst
         self.workflow = workfow
 
-
     def execute_sf_job(self, job_params):
         job_message = job_params['message']
         job_type = job_params['command']
@@ -55,7 +54,7 @@ class MigrationWorkflow:
             print('Input data {}'.format(job_params['input_data']))
             input_data = open(job_params['input_data'])
         else:
-            print('Input data {}'.format(re.sub(' +', ' ',job_params['input_data']).strip()))
+            print('Input data {}'.format(re.sub(' +', ' ', job_params['input_data']).strip()))
             input_data = job_params['input_data']
         output_data = job_params['output_data']
         logging.info('Output data {}'.format(output_data))
@@ -76,48 +75,51 @@ class MigrationWorkflow:
         if 'concurrency' in job_params.keys():
             concurrency = job_params['concurrency']
 
-        print('\t'+job_message)
+        print('\t' + job_message)
         logging.info(job_message)
         json_result_file = output_data
         if job_type == JT_QUERY:
-            res = connector.bulk_load ( object, input_data, None, output_data)
-            rf = open(output_data,'r')
+            res = connector.bulk_load(object, input_data, None, output_data)
+            rf = open(output_data, 'r')
             inside = rf.readline()
             rf.close()
             if '"Records not found for this query"' in inside:
                 with open(output_data, 'w') as f:
-                    res_re = re.search('SELECT(.*?)FROM',input_data, re.IGNORECASE).group(1).strip().split(',')
-                    columns = [ column.strip() for column in res_re]
+                    res_re = re.search('SELECT(.*?)FROM', input_data, re.IGNORECASE).group(1).strip().split(',')
+                    columns = [column.strip() for column in res_re]
                     w_str = ','.join(['"{0}"'.format(column) for column in columns])
                     f.write(w_str)
         else:
-            json_result_file = '.'.join (output_data.split('.')[:-1] + ['json'])
+            json_result_file = '.'.join(output_data.split('.')[:-1] + ['json'])
             print(json_result_file)
 
         if job_type == JT_UPSERT:
             external_id_name = job_params['exteranl_id_name'][0]
-            res = connector.bulk_upsert(object, external_id_name, input_data, batch_size=batch_size, concurrency=concurrency)
+            res = connector.bulk_upsert(object, external_id_name, input_data, batch_size=batch_size,
+                                        concurrency=concurrency)
         if job_type == JT_INSERT:
-            res = connector.bulk_insert(object, input_data, external_id_name, batch_size=batch_size, concurrency=concurrency)
+            res = connector.bulk_insert(object, input_data, external_id_name, batch_size=batch_size,
+                                        concurrency=concurrency)
         if job_type == JT_UPDATE:
-            res = connector.bulk_update(object, input_data, external_id_name, batch_size=batch_size, concurrency=concurrency)
+            res = connector.bulk_update(object, input_data, external_id_name, batch_size=batch_size,
+                                        concurrency=concurrency)
         if job_type == JT_DELETE:
             res = connector.bulk_simple_delete(object, input_data, batch_size=batch_size, concurrency=concurrency)
         if res is not None:
             if (output_data is None or output_data == ''):
                 output_data = json_result_file
-            dump(res,open(json_result_file,'w'))
+            dump(res, open(json_result_file, 'w'))
             to_csv_from_dict(res, output_data)
             if job_type != JT_QUERY:
                 check_result(job_message, json_result_file)
 
         return job_message
 
-    def __pre_execute_sql_query(self,sql,input_data,output_data):
+    def __pre_execute_sql_query(self, sql, input_data, output_data):
         temp_dir = tempfile.gettempdir()
         temp_input_data = []
         for in_file in input_data:
-            out_file = p.join(temp_dir,p.basename(in_file))
+            out_file = p.join(temp_dir, p.basename(in_file))
             temp_input_data.append(out_file)
             in_f = open(in_file, 'r')
             out_f = open(out_file, 'w')
@@ -125,29 +127,28 @@ class MigrationWorkflow:
             out_f.write(s1)
             out_f.close()
             in_f.close()
-        csvquerytool_table_names.run_query(sql,temp_input_data, open(temp_input_data[0] + '.tmp', 'w'))
+        csvquerytool_table_names.run_query(sql, temp_input_data, open(temp_input_data[0] + '.tmp', 'w'))
 
     def execute_sql_query(self, sql_params):
         job_message = sql_params['message']
 
-        sql = re.sub(' +', ' ',sql_params['sql']).strip()
+        sql = re.sub(' +', ' ', sql_params['sql']).strip()
 
         # sql = sql_params['sql']
         input_data = sql_params['input_data']
         output_data = sql_params['output_data']
-        logging.info('input files {0}'.format( ' '.join(input_data)))
+        logging.info('input files {0}'.format(' '.join(input_data)))
         logging.info('output files {0}'.format(output_data))
         logging.info(job_message)
-        print('\t input files {0}'.format( ' '.join(input_data)))
-        print('\t SQL {0}'.format( sql))
+        print('\t input files {0}'.format(' '.join(input_data)))
+        print('\t SQL {0}'.format(sql))
         print('\t output files {0}'.format(output_data))
-        print('\t'+job_message)
+        print('\t' + job_message)
         if type(output_data) == str:
             output_data = open(output_data, 'w')
-        self.__pre_execute_sql_query(sql,input_data,output_data)
-        csvquerytool_table_names.run_query(sql,input_data,output_data)
+        self.__pre_execute_sql_query(sql, input_data, output_data)
+        csvquerytool_table_names.run_query(sql, input_data, output_data)
         return job_message
-
 
     def execute_mapping(self, mapping_params):
         job_message = mapping_params['message']
@@ -160,7 +161,7 @@ class MigrationWorkflow:
 
         input_data = mapping_params['input_data']
         output_data = mapping_params['output_data']
-        print('\t'+job_message)
+        print('\t' + job_message)
         sql = mapping_info.get_sql_exchanged_column_names(mapping_params['operation'])
         print('input: {}'.format(input_data))
         print(sql)
@@ -169,9 +170,8 @@ class MigrationWorkflow:
         logging.info('Input data {}'.format(input_data))
         logging.info('Output data {}'.format(output_data))
         logging.info(sql)
-        csvquerytool_table_names.run_query(sql,input_data,open(output_data, 'w'))
+        csvquerytool_table_names.run_query(sql, input_data, open(output_data, 'w'))
         return job_message
-
 
     def execute_workflow(self):
         ttimer = Timer()
@@ -186,5 +186,5 @@ class MigrationWorkflow:
                 res = self.execute_mapping(workflow_step[wf_type])
             else:
                 res = self.execute_sql_query(workflow_step[wf_type])
-            print('\t'+res + ' [DONE] time elapsed - [{0}]'.format(ttimer.stop()))
+            print('\t' + res + ' [DONE] time elapsed - [{0}]'.format(ttimer.stop()))
             logging.info(res + ' [DONE] time elapsed - [{0}]'.format(ttimer.stop()))
